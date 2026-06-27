@@ -23,7 +23,7 @@
 	grid-template-columns: minmax(0, 1fr);
 	width: 100%;
 	max-width: var(--calendar-blocks-calendar-width);
-	margin-inline: auto;
+	margin-inline: 0 auto;
 }
 
 .calendar-blocks-calendars--dual {
@@ -34,7 +34,7 @@
 		var(--calendar-blocks-calendar-width) +
 		var(--calendar-blocks-gap)
 	);
-	margin-inline: auto;
+	margin-inline: 0 auto;
 }
 
 .calendar-blocks-calendars--omitted {
