@@ -1,1 +1,4 @@
-/* Calendar styles will be added in stage 3. */
+.calendar-blocks-error {
+	color: var(--text-error);
+	font-size: var(--font-ui-small);
+}
