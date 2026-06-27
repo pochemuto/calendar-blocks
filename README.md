@@ -13,6 +13,8 @@ Use a fenced `date` code block for a single date:
 ```
 ````
 
+The `dates` block name is supported as an alias and has identical behavior.
+
 Use a hyphen between two dates for a range:
 
 ````markdown

@@ -3,7 +3,8 @@
 ## Project overview
 
 Calendar Blocks is an Obsidian plugin that renders strict `date` fenced code
-blocks as responsive SVG calendars in Live Preview and Reading mode.
+blocks as responsive SVG calendars in Live Preview and Reading mode. The
+`dates` block name is an exact alias.
 
 Supported input:
 
@@ -26,8 +27,10 @@ Years are limited to `0001` through `9999`.
 
 ## Architecture
 
-- `src/main.ts` is the plugin entry point. It registers the `date` Markdown
-  code-block processor and delegates parsing and rendering.
+- `src/main.ts` is the plugin entry point. It registers the `date` and `dates`
+  Markdown code-block processors and delegates parsing and rendering.
+- `src/date-block.ts` defines the supported block-language names. Keep aliases
+  centralized there so they cannot diverge.
 - `src/date-parser.ts` contains the public date types, strict parser,
   comparison helpers, and canonical formatter. Keep this module independent
   of Obsidian and the DOM.
