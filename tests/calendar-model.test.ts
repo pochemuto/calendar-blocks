@@ -111,6 +111,33 @@ describe("createCalendarDisplay", () => {
 			[2026, 1],
 		]);
 		expect(display.hasOmittedMonths).toBe(false);
+		expect(
+			display.months[0]?.days.find(
+				({ date }) =>
+					date.year === 2026 && date.month === 1 && date.day === 1,
+			),
+		).toMatchObject({
+			isOutsideMonth: true,
+			highlight: "range-middle",
+		});
+		expect(
+			display.months[1]?.days.find(
+				({ date }) =>
+					date.year === 2025 && date.month === 12 && date.day === 29,
+			),
+		).toMatchObject({
+			isOutsideMonth: true,
+			highlight: "none",
+		});
+		expect(
+			display.months[1]?.days.find(
+				({ date }) =>
+					date.year === 2025 && date.month === 12 && date.day === 30,
+			),
+		).toMatchObject({
+			isOutsideMonth: true,
+			highlight: "range-start",
+		});
 	});
 
 	it("shows only boundary months when intermediate months are omitted", () => {

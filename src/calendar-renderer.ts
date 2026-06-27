@@ -135,10 +135,18 @@ function createCalendarSvg(
 	appendHighlights(svg, month.days, cellWidth);
 
 	month.days.forEach((day) => {
+		const classes = ["calendar-blocks-day"];
+
+		if (day.isWeekend) {
+			classes.push("calendar-blocks-weekend");
+		}
+
+		if (day.isOutsideMonth) {
+			classes.push("calendar-blocks-outside-month");
+		}
+
 		const text = createSvgElement("text", {
-			class: day.isWeekend
-				? "calendar-blocks-day calendar-blocks-weekend"
-				: "calendar-blocks-day",
+			class: classes.join(" "),
 			x: GRID_LEFT + (day.weekday + 0.5) * cellWidth,
 			y:
 				GRID_TOP +
@@ -180,14 +188,27 @@ function appendHighlights(
 	}
 
 	for (const weekDays of rangeDaysByWeek.values()) {
-		const firstDay = weekDays[0];
-		const lastDay = weekDays[weekDays.length - 1];
+		let runStart = 0;
 
-		if (firstDay === undefined || lastDay === undefined) {
-			continue;
+		for (let index = 1; index <= weekDays.length; index += 1) {
+			const firstDay = weekDays[runStart];
+			const currentDay = weekDays[index];
+
+			if (
+				firstDay !== undefined &&
+				currentDay !== undefined &&
+				firstDay.isOutsideMonth === currentDay.isOutsideMonth
+			) {
+				continue;
+			}
+
+			const lastDay = weekDays[index - 1];
+			if (firstDay !== undefined && lastDay !== undefined) {
+				appendRangeSegment(svg, firstDay, lastDay, cellWidth);
+			}
+
+			runStart = index;
 		}
-
-		appendRangeSegment(svg, firstDay, lastDay, cellWidth);
 	}
 }
 
@@ -219,28 +240,93 @@ function appendRangeSegment(
 	lastDay: CalendarDayModel,
 	cellWidth: number,
 ): void {
-	const x = GRID_LEFT + firstDay.weekday * cellWidth + 7;
+	const roundStart =
+		firstDay.highlight === "range-start" ||
+		firstDay.highlight === "range-boundary";
+	const roundEnd =
+		lastDay.highlight === "range-end" ||
+		lastDay.highlight === "range-boundary";
+	const startInset = roundStart ? 7 : 0;
+	const endInset = roundEnd ? 7 : 0;
+	const x = GRID_LEFT + firstDay.weekday * cellWidth + startInset;
 	const y = GRID_TOP + WEEKDAY_HEIGHT + firstDay.week * DAY_HEIGHT + 7;
-	const attributes = {
+	const width =
+		(lastDay.weekday - firstDay.weekday + 1) * cellWidth -
+		startInset -
+		endInset;
+	const height = DAY_HEIGHT - 14;
+	const path = createRangeSegmentPath(
 		x,
 		y,
-		width: (lastDay.weekday - firstDay.weekday + 1) * cellWidth - 14,
-		height: DAY_HEIGHT - 14,
-		rx: 18,
-	};
+		width,
+		height,
+		18,
+		roundStart,
+		roundEnd,
+	);
+	const segmentClasses = ["calendar-blocks-range-segment"];
+
+	if (firstDay.isOutsideMonth) {
+		segmentClasses.push("calendar-blocks-range-segment--outside");
+	}
 
 	svg.append(
-		createSvgElement("rect", {
+		createSvgElement("path", {
 			class: "calendar-blocks-range-segment-background",
-			...attributes,
+			d: path,
 		}),
-		createSvgElement("rect", {
-			class: "calendar-blocks-range-segment",
-			...attributes,
+		createSvgElement("path", {
+			class: segmentClasses.join(" "),
+			d: path,
 			"data-start-date": formatCalendarDate(firstDay.date),
 			"data-end-date": formatCalendarDate(lastDay.date),
+			"data-start-edge": roundStart ? "rounded" : "open",
+			"data-end-edge": roundEnd ? "rounded" : "open",
+			"data-overflow": String(firstDay.isOutsideMonth),
 		}),
 	);
+}
+
+function createRangeSegmentPath(
+	x: number,
+	y: number,
+	width: number,
+	height: number,
+	radius: number,
+	roundStart: boolean,
+	roundEnd: boolean,
+): string {
+	const right = x + width;
+	const bottom = y + height;
+	const safeRadius = Math.min(radius, width / 2, height / 2);
+	const commands = [
+		`M ${x + (roundStart ? safeRadius : 0)} ${y}`,
+	];
+
+	if (roundEnd) {
+		commands.push(
+			`H ${right - safeRadius}`,
+			`Q ${right} ${y} ${right} ${y + safeRadius}`,
+			`V ${bottom - safeRadius}`,
+			`Q ${right} ${bottom} ${right - safeRadius} ${bottom}`,
+		);
+	} else {
+		commands.push(`H ${right}`, `V ${bottom}`);
+	}
+
+	if (roundStart) {
+		commands.push(
+			`H ${x + safeRadius}`,
+			`Q ${x} ${bottom} ${x} ${bottom - safeRadius}`,
+			`V ${y + safeRadius}`,
+			`Q ${x} ${y} ${x + safeRadius} ${y}`,
+		);
+	} else {
+		commands.push(`H ${x}`, `V ${y}`);
+	}
+
+	commands.push("Z");
+	return commands.join(" ");
 }
 
 function appendGrid(

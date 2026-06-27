@@ -57,10 +57,16 @@ formatting, construct and read it in UTC to avoid timezone and DST shifts.
   not use an accent color.
 - Adjacent range dates within the same week merge into one rounded segment
   with a translucent fill and no outline. Multi-week ranges render one segment
-  per week row.
+  per week row. An edge that continues into another week is square and flush
+  with the week boundary; only actual range boundaries are rounded.
 - A same-month range renders one calendar.
 - A multi-month range renders only the first and last months. A narrow
   vertical wave separates them when one or more complete months are omitted.
+- For a multi-month range, free cells at the boundary of each displayed month
+  show dimmed dates from the adjacent month. Range segments continue through
+  those overflow dates when they fall inside the selection. The overflow
+  portion of a segment uses a lower fill opacity while remaining visually
+  joined to the main-month portion.
 - Two calendars always remain side by side and shrink together in a narrow
   container.
 - Every SVG must retain its localized `title`, `role="img"`, and `aria-label`.

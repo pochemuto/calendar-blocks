@@ -107,6 +107,10 @@
 	fill: var(--calendar-blocks-red);
 }
 
+.calendar-blocks-outside-month {
+	opacity: 0.45;
+}
+
 .calendar-blocks-selection-outline {
 	fill: var(--background-primary);
 	stroke: var(--text-muted);
@@ -121,4 +125,8 @@
 .calendar-blocks-range-segment {
 	fill: var(--calendar-blocks-red);
 	fill-opacity: 0.16;
+}
+
+.calendar-blocks-range-segment--outside {
+	fill-opacity: 0.08;
 }

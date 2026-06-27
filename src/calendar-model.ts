@@ -18,6 +18,7 @@ export interface CalendarDayModel {
 	week: number;
 	weekday: number;
 	isWeekend: boolean;
+	isOutsideMonth: boolean;
 	highlight: DayHighlight;
 }
 
@@ -33,6 +34,11 @@ export interface CalendarDisplayModel {
 	hasOmittedMonths: boolean;
 }
 
+interface CalendarMonthOptions {
+	includePreviousMonth?: boolean;
+	includeNextMonth?: boolean;
+}
+
 export function createCalendarDisplay(
 	selection: DateSelection,
 ): CalendarDisplayModel {
@@ -46,8 +52,11 @@ export function createCalendarDisplay(
 		monthDistance(selection.start, selection.end) > 1;
 
 	return {
-		months: monthKeys.map(({ year, month }) =>
-			createCalendarMonth(year, month, selection),
+		months: monthKeys.map(({ year, month }, index) =>
+			createCalendarMonth(year, month, selection, {
+				includePreviousMonth: index > 0,
+				includeNextMonth: index < monthKeys.length - 1,
+			}),
 		),
 		hasOmittedMonths,
 	};
@@ -57,27 +66,76 @@ export function createCalendarMonth(
 	year: number,
 	month: number,
 	selection: DateSelection,
+	options: CalendarMonthOptions = {},
 ): CalendarMonthModel {
 	const firstWeekday = getMondayFirstWeekday(year, month);
 	const dayCount = daysInMonth(year, month);
 	const weekCount = Math.ceil((firstWeekday + dayCount) / 7);
 	const days: CalendarDayModel[] = [];
 
+	if (options.includePreviousMonth === true && firstWeekday > 0) {
+		const previousMonth = shiftMonth(year, month, -1);
+		const previousMonthDayCount = daysInMonth(
+			previousMonth.year,
+			previousMonth.month,
+		);
+
+		for (let position = 0; position < firstWeekday; position += 1) {
+			const day = previousMonthDayCount - firstWeekday + position + 1;
+			days.push(
+				createDayModel(
+					{ ...previousMonth, day },
+					position,
+					selection,
+					true,
+				),
+			);
+		}
+	}
+
 	for (let day = 1; day <= dayCount; day += 1) {
 		const position = firstWeekday + day - 1;
-		const weekday = position % 7;
 		const date = { year, month, day };
 
-		days.push({
-			date,
-			week: Math.floor(position / 7),
-			weekday,
-			isWeekend: weekday >= 5,
-			highlight: getHighlight(date, selection),
-		});
+		days.push(createDayModel(date, position, selection, false));
+	}
+
+	if (options.includeNextMonth === true) {
+		const nextMonth = shiftMonth(year, month, 1);
+		const firstNextMonthPosition = firstWeekday + dayCount;
+		const cellCount = weekCount * 7;
+
+		for (
+			let position = firstNextMonthPosition;
+			position < cellCount;
+			position += 1
+		) {
+			const day = position - firstNextMonthPosition + 1;
+			days.push(
+				createDayModel({ ...nextMonth, day }, position, selection, true),
+			);
+		}
 	}
 
 	return { year, month, weekCount, days };
+}
+
+function createDayModel(
+	date: CalendarDate,
+	position: number,
+	selection: DateSelection,
+	isOutsideMonth: boolean,
+): CalendarDayModel {
+	const weekday = position % 7;
+
+	return {
+		date,
+		week: Math.floor(position / 7),
+		weekday,
+		isWeekend: weekday >= 5,
+		isOutsideMonth,
+		highlight: getHighlight(date, selection),
+	};
 }
 
 function getRangeMonthKeys(
@@ -133,6 +191,18 @@ function getMondayFirstWeekday(year: number, month: number): number {
 
 function monthDistance(start: CalendarDate, end: CalendarDate): number {
 	return (end.year - start.year) * 12 + end.month - start.month;
+}
+
+function shiftMonth(
+	year: number,
+	month: number,
+	offset: -1 | 1,
+): Pick<CalendarDate, "year" | "month"> {
+	const zeroBasedMonth = month - 1 + offset;
+	const shiftedYear = year + Math.floor(zeroBasedMonth / 12);
+	const shiftedMonth = ((zeroBasedMonth % 12) + 12) % 12;
+
+	return { year: shiftedYear, month: shiftedMonth + 1 };
 }
 
 function toMonthKey(

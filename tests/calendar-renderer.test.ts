@@ -98,7 +98,7 @@ describe("renderCalendarSelection", () => {
 		expect(container.querySelectorAll("svg")).toHaveLength(1);
 		expect(
 			container.querySelector(
-				'.calendar-blocks-range-segment[data-start-date="2025.07.21"][data-end-date="2025.07.23"]',
+				'.calendar-blocks-range-segment[data-start-date="2025.07.21"][data-end-date="2025.07.23"][data-start-edge="rounded"][data-end-edge="rounded"]',
 			),
 		).not.toBeNull();
 		expect(
@@ -118,17 +118,93 @@ describe("renderCalendarSelection", () => {
 			"en-US",
 		);
 
+		const segmentElements = Array.from(
+			container.querySelectorAll<SVGPathElement>(
+				".calendar-blocks-range-segment",
+			),
+		);
 		const segments = Array.from(
-			container.querySelectorAll(".calendar-blocks-range-segment"),
+			segmentElements,
 			(element) => [
 				element.getAttribute("data-start-date"),
 				element.getAttribute("data-end-date"),
+				element.getAttribute("data-start-edge"),
+				element.getAttribute("data-end-edge"),
 			],
 		);
 		expect(segments).toEqual([
-			["2025.07.25", "2025.07.27"],
-			["2025.07.28", "2025.07.29"],
+			["2025.07.25", "2025.07.27", "rounded", "open"],
+			["2025.07.28", "2025.07.29", "open", "rounded"],
 		]);
+		expect(segmentElements[0]?.getAttribute("d")).toContain("H 680");
+		expect(segmentElements[1]?.getAttribute("d")).toMatch(/^M 20 /);
+	});
+
+	it("leaves both edges open for a complete intermediate week", () => {
+		const container = document.createElement("div");
+		renderCalendarSelection(
+			container,
+			{
+				kind: "range",
+				start: { year: 2025, month: 7, day: 1 },
+				end: { year: 2025, month: 7, day: 20 },
+			},
+			"en-US",
+		);
+
+		expect(
+			container.querySelector(
+				'.calendar-blocks-range-segment[data-start-date="2025.07.07"][data-end-date="2025.07.13"][data-start-edge="open"][data-end-edge="open"]',
+			),
+		).not.toBeNull();
+	});
+
+	it("renders dim adjacent-month dates and continues the range into them", () => {
+		const container = document.createElement("div");
+		renderCalendarSelection(
+			container,
+			{
+				kind: "range",
+				start: { year: 2025, month: 7, day: 30 },
+				end: { year: 2025, month: 8, day: 3 },
+			},
+			"en-US",
+		);
+
+		const calendars = container.querySelectorAll<SVGSVGElement>(
+			"svg.calendar-blocks-calendar",
+		);
+		expect(calendars).toHaveLength(2);
+		expect(
+			calendars[0]?.querySelector(
+				'.calendar-blocks-outside-month[data-date="2025.08.01"]',
+			),
+		).not.toBeNull();
+		expect(
+			calendars[1]?.querySelector(
+				'.calendar-blocks-outside-month[data-date="2025.07.31"]',
+			),
+		).not.toBeNull();
+		expect(
+			calendars[0]?.querySelector(
+				'.calendar-blocks-range-segment:not(.calendar-blocks-range-segment--outside)[data-start-date="2025.07.30"][data-end-date="2025.07.31"][data-end-edge="open"]',
+			),
+		).not.toBeNull();
+		expect(
+			calendars[0]?.querySelector(
+				'.calendar-blocks-range-segment--outside[data-start-date="2025.08.01"][data-end-date="2025.08.03"][data-start-edge="open"]',
+			),
+		).not.toBeNull();
+		expect(
+			calendars[1]?.querySelector(
+				'.calendar-blocks-range-segment--outside[data-start-date="2025.07.30"][data-end-date="2025.07.31"][data-end-edge="open"]',
+			),
+		).not.toBeNull();
+		expect(
+			calendars[1]?.querySelector(
+				'.calendar-blocks-range-segment:not(.calendar-blocks-range-segment--outside)[data-start-date="2025.08.01"][data-end-date="2025.08.03"][data-start-edge="open"]',
+			),
+		).not.toBeNull();
 	});
 
 	it("renders boundary months and a vertical wave for a long range", () => {
