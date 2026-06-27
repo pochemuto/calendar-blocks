@@ -145,3 +145,10 @@ changes, manually check:
 Do not commit `build/` or `node_modules/`; both are intentionally ignored.
 Do not create Git commits unless the user explicitly requests one. When
 adding or updating dependencies, update and include `package-lock.json`.
+
+## Roadmap maintenance
+
+When implementing a feature listed in `ROADMAP.md`, mark every corresponding
+checkbox and completed subtask as done (`[x]`) in the same change. Do not mark
+an item complete until its implementation and required validation are
+finished.
