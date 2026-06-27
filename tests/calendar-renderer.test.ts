@@ -106,7 +106,7 @@ describe("renderCalendarSelection", () => {
 		).toHaveLength(2);
 	});
 
-	it("renders boundary months and an ellipsis for a long range", () => {
+	it("renders boundary months and a vertical wave for a long range", () => {
 		const container = document.createElement("div");
 		renderCalendarSelection(
 			container,
@@ -118,10 +118,17 @@ describe("renderCalendarSelection", () => {
 			"en-US",
 		);
 
-		expect(container.querySelectorAll("svg")).toHaveLength(2);
+		expect(
+			container.querySelectorAll("svg.calendar-blocks-calendar"),
+		).toHaveLength(2);
+		expect(
+			container.querySelector(
+				"svg.calendar-blocks-separator .calendar-blocks-separator-wave",
+			),
+		).not.toBeNull();
 		expect(
 			container.querySelector(".calendar-blocks-separator")?.textContent,
-		).toBe("…");
+		).toBe("");
 		expect(
 			container.querySelector(
 				'.calendar-blocks-selection-outline[data-date="2025.07.27"]',

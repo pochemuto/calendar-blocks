@@ -42,10 +42,19 @@ export function renderCalendarSelection(
 
 	display.months.forEach((month, index) => {
 		if (index > 0 && display.hasOmittedMonths) {
-			const separator = document.createElement("div");
-			separator.className = "calendar-blocks-separator";
-			separator.setAttribute("aria-hidden", "true");
-			separator.textContent = "…";
+			const separator = createSvgElement("svg", {
+				class: "calendar-blocks-separator",
+				viewBox: "0 0 12 120",
+				preserveAspectRatio: "none",
+				"aria-hidden": "true",
+				focusable: "false",
+			});
+			separator.append(
+				createSvgElement("path", {
+					class: "calendar-blocks-separator-wave",
+					d: "M 6 0 Q 0 7.5 6 15 T 6 30 T 6 45 T 6 60 T 6 75 T 6 90 T 6 105 T 6 120",
+				}),
+			);
 			calendars.append(separator);
 		}
 

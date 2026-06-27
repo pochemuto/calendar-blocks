@@ -4,12 +4,12 @@
 }
 
 .calendar-blocks-root {
+	--calendar-blocks-break-gap: 0.25rem;
+	--calendar-blocks-break-width: 0.75rem;
 	--calendar-blocks-calendar-width: 28ch;
 	--calendar-blocks-gap: var(--size-4-4, 1rem);
 	--calendar-blocks-red: var(--color-red, #d32f2f);
 
-	container-name: calendar-blocks;
-	container-type: inline-size;
 	margin: var(--size-4-3) 0;
 }
 
@@ -38,21 +38,32 @@
 }
 
 .calendar-blocks-calendars--omitted {
-	grid-template-columns: minmax(0, 1fr) 2rem minmax(0, 1fr);
+	grid-template-columns:
+		minmax(0, 1fr)
+		var(--calendar-blocks-break-width)
+		minmax(0, 1fr);
+	column-gap: var(--calendar-blocks-break-gap);
 	max-width: calc(
 		var(--calendar-blocks-calendar-width) +
 		var(--calendar-blocks-calendar-width) +
-		2rem +
-		var(--calendar-blocks-gap) +
-		var(--calendar-blocks-gap)
+		var(--calendar-blocks-break-width) +
+		var(--calendar-blocks-break-gap) +
+		var(--calendar-blocks-break-gap)
 	);
 }
 
 .calendar-blocks-separator {
-	color: var(--text-muted);
-	font-size: var(--font-ui-large);
-	font-weight: var(--font-semibold);
-	text-align: center;
+	display: block;
+	width: 100%;
+	height: auto;
+	overflow: visible;
+}
+
+.calendar-blocks-separator-wave {
+	fill: none;
+	stroke: var(--text-faint, var(--text-muted));
+	stroke-width: 1.5;
+	vector-effect: non-scaling-stroke;
 }
 
 .calendar-blocks-calendar {
@@ -106,12 +117,4 @@
 .calendar-blocks-range-fill {
 	fill: var(--calendar-blocks-red);
 	fill-opacity: 0.16;
-}
-
-@container calendar-blocks (max-width: 720px) {
-	.calendar-blocks-calendars--dual,
-	.calendar-blocks-calendars--omitted {
-		grid-template-columns: minmax(0, 1fr);
-		max-width: var(--calendar-blocks-calendar-width);
-	}
 }

@@ -57,9 +57,9 @@ formatting, construct and read it in UTC to avoid timezone and DST shifts.
 - Range boundaries have the same outline; intermediate dates use a
   translucent red fill.
 - A same-month range renders one calendar.
-- A multi-month range renders only the first and last months. An ellipsis is
-  shown when one or more complete months are omitted.
-- Two calendars are side by side when space permits and stack in a narrow
+- A multi-month range renders only the first and last months. A narrow
+  vertical wave separates them when one or more complete months are omitted.
+- Two calendars always remain side by side and shrink together in a narrow
   container.
 - Every SVG must retain its localized `title`, `role="img"`, and `aria-label`.
 - Invalid input must render a compact error instead of throwing.
@@ -142,7 +142,7 @@ changes, manually check:
 - Live Preview and Reading mode;
 - light and dark Obsidian themes;
 - a single date, a same-month range, and a multi-month range;
-- a narrow pane where two calendars must stack;
+- a narrow pane where two calendars must remain horizontal without overflow;
 - localized labels and red Saturday/Sunday styling.
 
 Do not commit `build/` or `node_modules/`; both are intentionally ignored.
