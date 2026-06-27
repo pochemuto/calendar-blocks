@@ -1,6 +1,6 @@
 # Calendar Blocks Improvement Roadmap
 
-- [ ] Reduce the calendar width.
+- [x] Reduce the calendar width.
 - [ ] Support a horizontal two-month layout.
 - [ ] Extract the SVG calendar into a template that the code uses instead of
       drawing the SVG from scratch.

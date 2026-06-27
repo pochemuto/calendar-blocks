@@ -4,6 +4,8 @@
 }
 
 .calendar-blocks-root {
+	--calendar-blocks-calendar-width: 28ch;
+	--calendar-blocks-gap: var(--size-4-4, 1rem);
 	--calendar-blocks-red: var(--color-red, #d32f2f);
 
 	container-name: calendar-blocks;
@@ -13,21 +15,37 @@
 
 .calendar-blocks-calendars {
 	display: grid;
-	gap: var(--size-4-4);
+	gap: var(--calendar-blocks-gap);
 	align-items: center;
 }
 
 .calendar-blocks-calendars--single {
-	grid-template-columns: minmax(0, 700px);
-	justify-content: center;
+	grid-template-columns: minmax(0, 1fr);
+	width: 100%;
+	max-width: var(--calendar-blocks-calendar-width);
+	margin-inline: auto;
 }
 
 .calendar-blocks-calendars--dual {
 	grid-template-columns: repeat(2, minmax(0, 1fr));
+	width: 100%;
+	max-width: calc(
+		var(--calendar-blocks-calendar-width) +
+		var(--calendar-blocks-calendar-width) +
+		var(--calendar-blocks-gap)
+	);
+	margin-inline: auto;
 }
 
 .calendar-blocks-calendars--omitted {
 	grid-template-columns: minmax(0, 1fr) 2rem minmax(0, 1fr);
+	max-width: calc(
+		var(--calendar-blocks-calendar-width) +
+		var(--calendar-blocks-calendar-width) +
+		2rem +
+		var(--calendar-blocks-gap) +
+		var(--calendar-blocks-gap)
+	);
 }
 
 .calendar-blocks-separator {
@@ -94,5 +112,6 @@
 	.calendar-blocks-calendars--dual,
 	.calendar-blocks-calendars--omitted {
 		grid-template-columns: minmax(0, 1fr);
+		max-width: var(--calendar-blocks-calendar-width);
 	}
 }
