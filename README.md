@@ -3,6 +3,24 @@
 Calendar Blocks is an Obsidian plugin for rendering dates and date ranges as
 calendars.
 
+## Usage
+
+Use a fenced `date` code block for a single date:
+
+````markdown
+```date
+2025.07.27
+```
+````
+
+Use a hyphen between two dates for a range:
+
+````markdown
+```date
+2025.07.27 - 2025.08.03
+```
+````
+
 ## Build
 
 ```sh

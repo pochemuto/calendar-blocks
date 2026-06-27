@@ -1,8 +1,8 @@
-import { Plugin } from "obsidian";
+import { moment, Plugin } from "obsidian";
 
+import { renderCalendarSelection } from "./calendar-renderer";
 import {
 	EXPECTED_DATE_FORMAT,
-	formatDateSelection,
 	parseDateInput,
 } from "./date-parser";
 
@@ -21,10 +21,7 @@ export default class CalendarBlocksPlugin extends Plugin {
 				return;
 			}
 
-			element.createEl("em", {
-				cls: "calendar-blocks-date",
-				text: formatDateSelection(result.value),
-			});
+			renderCalendarSelection(element, result.value, moment.locale());
 		});
 	}
 

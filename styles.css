@@ -2,3 +2,97 @@
 	color: var(--text-error);
 	font-size: var(--font-ui-small);
 }
+
+.calendar-blocks-root {
+	--calendar-blocks-red: var(--color-red, #d32f2f);
+
+	container-name: calendar-blocks;
+	container-type: inline-size;
+	margin: var(--size-4-3) 0;
+}
+
+.calendar-blocks-calendars {
+	display: grid;
+	gap: var(--size-4-4);
+	align-items: center;
+}
+
+.calendar-blocks-calendars--single {
+	grid-template-columns: minmax(0, 700px);
+	justify-content: center;
+}
+
+.calendar-blocks-calendars--dual {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.calendar-blocks-calendars--omitted {
+	grid-template-columns: minmax(0, 1fr) 2rem minmax(0, 1fr);
+}
+
+.calendar-blocks-separator {
+	color: var(--text-muted);
+	font-size: var(--font-ui-large);
+	font-weight: var(--font-semibold);
+	text-align: center;
+}
+
+.calendar-blocks-calendar {
+	display: block;
+	width: 100%;
+	height: auto;
+	font-family: var(--font-interface);
+}
+
+.calendar-blocks-background {
+	fill: var(--background-primary);
+	stroke: var(--background-modifier-border);
+	stroke-width: 1;
+	vector-effect: non-scaling-stroke;
+}
+
+.calendar-blocks-grid-line {
+	stroke: var(--background-modifier-border);
+	stroke-width: 1;
+	vector-effect: non-scaling-stroke;
+}
+
+.calendar-blocks-month-title {
+	fill: var(--text-normal);
+	font-size: 32px;
+	font-weight: var(--font-bold);
+}
+
+.calendar-blocks-weekday {
+	fill: var(--text-muted);
+	font-size: 20px;
+	font-weight: var(--font-medium);
+}
+
+.calendar-blocks-day {
+	fill: var(--text-normal);
+	font-size: 24px;
+}
+
+.calendar-blocks-weekend {
+	fill: var(--calendar-blocks-red);
+}
+
+.calendar-blocks-selection-outline {
+	fill: var(--background-primary);
+	stroke: var(--calendar-blocks-red);
+	stroke-width: 4;
+	vector-effect: non-scaling-stroke;
+}
+
+.calendar-blocks-range-fill {
+	fill: var(--calendar-blocks-red);
+	fill-opacity: 0.16;
+}
+
+@container calendar-blocks (max-width: 720px) {
+	.calendar-blocks-calendars--dual,
+	.calendar-blocks-calendars--omitted {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}

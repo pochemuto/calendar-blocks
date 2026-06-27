@@ -70,7 +70,7 @@ export function parseDateInput(source: string): DateParseResult {
 		return endResult;
 	}
 
-	if (compareDates(startResult.value, endResult.value) > 0) {
+	if (compareCalendarDates(startResult.value, endResult.value) > 0) {
 		return failure(
 			"reversed-range",
 			"The range start must not be later than the range end.",
@@ -124,7 +124,7 @@ function parseCalendarDate(
 	};
 }
 
-function daysInMonth(year: number, month: number): number {
+export function daysInMonth(year: number, month: number): number {
 	if (month === 2) {
 		return isLeapYear(year) ? 29 : 28;
 	}
@@ -136,7 +136,10 @@ function isLeapYear(year: number): boolean {
 	return year % 400 === 0 || (year % 4 === 0 && year % 100 !== 0);
 }
 
-function compareDates(left: CalendarDate, right: CalendarDate): number {
+export function compareCalendarDates(
+	left: CalendarDate,
+	right: CalendarDate,
+): number {
 	if (left.year !== right.year) {
 		return left.year - right.year;
 	}
@@ -148,7 +151,7 @@ function compareDates(left: CalendarDate, right: CalendarDate): number {
 	return left.day - right.day;
 }
 
-function formatCalendarDate(date: CalendarDate): string {
+export function formatCalendarDate(date: CalendarDate): string {
 	return [
 		String(date.year).padStart(4, "0"),
 		String(date.month).padStart(2, "0"),
