@@ -53,9 +53,11 @@ formatting, construct and read it in UTC to avoid timezone and DST shifts.
 - The Obsidian Moment locale determines month and weekday labels.
 - Weeks always start on Monday, independently of locale.
 - Saturday and Sunday labels and dates are red.
-- A single selected date has a thick red rounded outline.
-- Range boundaries have the same outline; intermediate dates use a
-  translucent red fill.
+- A single selected date has a thin, theme-neutral rounded outline and does
+  not use an accent color.
+- Adjacent range dates within the same week merge into one rounded segment
+  with a translucent fill and no outline. Multi-week ranges render one segment
+  per week row.
 - A same-month range renders one calendar.
 - A multi-month range renders only the first and last months. A narrow
   vertical wave separates them when one or more complete months are omitted.

@@ -109,12 +109,16 @@
 
 .calendar-blocks-selection-outline {
 	fill: var(--background-primary);
-	stroke: var(--calendar-blocks-red);
-	stroke-width: 4;
+	stroke: var(--text-muted);
+	stroke-width: 2;
 	vector-effect: non-scaling-stroke;
 }
 
-.calendar-blocks-range-fill {
+.calendar-blocks-range-segment-background {
+	fill: var(--background-primary);
+}
+
+.calendar-blocks-range-segment {
 	fill: var(--calendar-blocks-red);
 	fill-opacity: 0.16;
 }

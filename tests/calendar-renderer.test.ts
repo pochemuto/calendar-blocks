@@ -83,14 +83,14 @@ describe("renderCalendarSelection", () => {
 		).toEqual(["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]);
 	});
 
-	it("renders one SVG with a filled interval for a same-month range", () => {
+	it("merges adjacent range dates within one week", () => {
 		const container = document.createElement("div");
 		renderCalendarSelection(
 			container,
 			{
 				kind: "range",
-				start: { year: 2025, month: 7, day: 27 },
-				end: { year: 2025, month: 7, day: 29 },
+				start: { year: 2025, month: 7, day: 21 },
+				end: { year: 2025, month: 7, day: 23 },
 			},
 			"en-US",
 		);
@@ -98,12 +98,37 @@ describe("renderCalendarSelection", () => {
 		expect(container.querySelectorAll("svg")).toHaveLength(1);
 		expect(
 			container.querySelector(
-				'.calendar-blocks-range-fill[data-date="2025.07.28"]',
+				'.calendar-blocks-range-segment[data-start-date="2025.07.21"][data-end-date="2025.07.23"]',
 			),
 		).not.toBeNull();
 		expect(
-			container.querySelectorAll(".calendar-blocks-selection-outline"),
-		).toHaveLength(2);
+			container.querySelectorAll(".calendar-blocks-range-segment"),
+		).toHaveLength(1);
+	});
+
+	it("renders one merged segment per week for a multi-week range", () => {
+		const container = document.createElement("div");
+		renderCalendarSelection(
+			container,
+			{
+				kind: "range",
+				start: { year: 2025, month: 7, day: 25 },
+				end: { year: 2025, month: 7, day: 29 },
+			},
+			"en-US",
+		);
+
+		const segments = Array.from(
+			container.querySelectorAll(".calendar-blocks-range-segment"),
+			(element) => [
+				element.getAttribute("data-start-date"),
+				element.getAttribute("data-end-date"),
+			],
+		);
+		expect(segments).toEqual([
+			["2025.07.25", "2025.07.27"],
+			["2025.07.28", "2025.07.29"],
+		]);
 	});
 
 	it("renders boundary months and a vertical wave for a long range", () => {
@@ -131,12 +156,12 @@ describe("renderCalendarSelection", () => {
 		).toBe("");
 		expect(
 			container.querySelector(
-				'.calendar-blocks-selection-outline[data-date="2025.07.27"]',
+				'.calendar-blocks-range-segment[data-start-date="2025.07.27"]',
 			),
 		).not.toBeNull();
 		expect(
 			container.querySelector(
-				'.calendar-blocks-selection-outline[data-date="2025.10.02"]',
+				'.calendar-blocks-range-segment[data-end-date="2025.10.02"]',
 			),
 		).not.toBeNull();
 	});

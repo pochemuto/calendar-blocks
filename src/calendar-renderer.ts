@@ -131,11 +131,8 @@ function createCalendarSvg(
 		svg.append(text);
 	});
 
-	month.days.forEach((day) => {
-		appendDayHighlight(svg, day, cellWidth);
-	});
-
 	appendGrid(svg, month.weekCount, cellWidth);
+	appendHighlights(svg, month.days, cellWidth);
 
 	month.days.forEach((day) => {
 		const text = createSvgElement("text", {
@@ -158,24 +155,53 @@ function createCalendarSvg(
 	return svg;
 }
 
-function appendDayHighlight(
+function appendHighlights(
+	svg: SVGSVGElement,
+	days: CalendarDayModel[],
+	cellWidth: number,
+): void {
+	const singleDay = days.find(({ highlight }) => highlight === "single");
+
+	if (singleDay !== undefined) {
+		appendSingleHighlight(svg, singleDay, cellWidth);
+		return;
+	}
+
+	const rangeDaysByWeek = new Map<number, CalendarDayModel[]>();
+
+	for (const day of days) {
+		if (day.highlight === "none") {
+			continue;
+		}
+
+		const weekDays = rangeDaysByWeek.get(day.week) ?? [];
+		weekDays.push(day);
+		rangeDaysByWeek.set(day.week, weekDays);
+	}
+
+	for (const weekDays of rangeDaysByWeek.values()) {
+		const firstDay = weekDays[0];
+		const lastDay = weekDays[weekDays.length - 1];
+
+		if (firstDay === undefined || lastDay === undefined) {
+			continue;
+		}
+
+		appendRangeSegment(svg, firstDay, lastDay, cellWidth);
+	}
+}
+
+function appendSingleHighlight(
 	svg: SVGSVGElement,
 	day: CalendarDayModel,
 	cellWidth: number,
 ): void {
-	if (day.highlight === "none") {
-		return;
-	}
-
-	const isRangeMiddle = day.highlight === "range-middle";
 	const x = GRID_LEFT + day.weekday * cellWidth + 7;
 	const y = GRID_TOP + WEEKDAY_HEIGHT + day.week * DAY_HEIGHT + 7;
 
 	svg.append(
 		createSvgElement("rect", {
-			class: isRangeMiddle
-				? "calendar-blocks-range-fill"
-				: "calendar-blocks-selection-outline",
+			class: "calendar-blocks-selection-outline",
 			x,
 			y,
 			width: cellWidth - 14,
@@ -183,6 +209,36 @@ function appendDayHighlight(
 			rx: 18,
 			"data-date": formatCalendarDate(day.date),
 			"data-highlight": day.highlight,
+		}),
+	);
+}
+
+function appendRangeSegment(
+	svg: SVGSVGElement,
+	firstDay: CalendarDayModel,
+	lastDay: CalendarDayModel,
+	cellWidth: number,
+): void {
+	const x = GRID_LEFT + firstDay.weekday * cellWidth + 7;
+	const y = GRID_TOP + WEEKDAY_HEIGHT + firstDay.week * DAY_HEIGHT + 7;
+	const attributes = {
+		x,
+		y,
+		width: (lastDay.weekday - firstDay.weekday + 1) * cellWidth - 14,
+		height: DAY_HEIGHT - 14,
+		rx: 18,
+	};
+
+	svg.append(
+		createSvgElement("rect", {
+			class: "calendar-blocks-range-segment-background",
+			...attributes,
+		}),
+		createSvgElement("rect", {
+			class: "calendar-blocks-range-segment",
+			...attributes,
+			"data-start-date": formatCalendarDate(firstDay.date),
+			"data-end-date": formatCalendarDate(lastDay.date),
 		}),
 	);
 }
