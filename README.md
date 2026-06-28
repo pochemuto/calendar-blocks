@@ -83,6 +83,32 @@ Enable **Stretch calendar** in the Calendar Blocks settings to make calendars
 use the full available note width. It is disabled by default, preserving the
 compact layout.
 
+## Installation
+
+### Manual installation from Releases
+
+1. Open the [latest release](https://github.com/pochemuto/calendar-blocks/releases/latest)
+   and download the attached `calendar-blocks-<version>.zip` archive. Do not
+   download GitHub's automatically generated source code archives.
+2. Create this directory inside your Obsidian vault:
+
+   ```text
+   <vault>/.obsidian/plugins/calendar-blocks/
+   ```
+
+3. Extract the archive contents directly into that directory. The resulting
+   layout must be:
+
+   ```text
+   <vault>/.obsidian/plugins/calendar-blocks/
+   ├── main.js
+   ├── manifest.json
+   └── styles.css
+   ```
+
+4. Reload Obsidian, open **Settings → Community plugins**, and enable
+   **Calendar Blocks**.
+
 ## Build
 
 ```sh
