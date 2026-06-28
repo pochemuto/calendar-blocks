@@ -94,4 +94,5 @@ jobs:
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: gh release create "$GITHUB_REF_NAME" "calendar-blocks-${GITHUB_REF_NAME}.zip" --generate-notes --verify-tag
