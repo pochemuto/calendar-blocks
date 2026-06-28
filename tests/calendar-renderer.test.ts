@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import {
 	renderCalendarSelection,
+	rerenderCalendarRoot,
 	STRETCHED_CALENDAR_CLASS,
 } from "../src/calendar-renderer";
 
@@ -33,6 +34,116 @@ describe("renderCalendarSelection", () => {
 			svg?.querySelector(
 				'.calendar-blocks-selection-outline[data-date="2025.07.27"]',
 			),
+		).not.toBeNull();
+		expect(
+			container.querySelector(".calendar-blocks-root--basic"),
+		).not.toBeNull();
+		expect(svg?.querySelector(".calendar-blocks-grid-line")).not.toBeNull();
+	});
+
+	it("renders the minimal design without a grid and selects a date with a circle", () => {
+		const container = document.createElement("div");
+		renderCalendarSelection(
+			container,
+			{
+				kind: "single",
+				date: { year: 2025, month: 7, day: 27 },
+			},
+			"ru",
+			{ theme: "minimal" },
+		);
+
+		const svg = container.querySelector(
+			"svg.calendar-blocks-calendar--minimal",
+		);
+		expect(
+			container.querySelector(".calendar-blocks-root--minimal"),
+		).not.toBeNull();
+		expect(svg?.querySelector(".calendar-blocks-grid-line")).toBeNull();
+		expect(svg?.querySelector(".calendar-blocks-selection-outline")).toBeNull();
+		expect(
+			svg?.querySelector(
+				'.calendar-blocks-selection-circle[data-date="2025.07.27"]',
+			),
+		).not.toBeNull();
+		const selectedDay = svg?.querySelector(
+				'.calendar-blocks-minimal-selected-day[data-date="2025.07.27"]',
+			);
+		const selectionCircle = svg?.querySelector(
+			'.calendar-blocks-selection-circle[data-date="2025.07.27"]',
+		);
+		expect(selectedDay?.textContent).toBe("27");
+		expect(Number(selectionCircle?.getAttribute("cy"))).toBe(
+			Number(selectedDay?.getAttribute("y")) - 2,
+		);
+		expect(
+			svg?.querySelector(".calendar-blocks-minimal-month-title")
+				?.textContent,
+		).toBe("ИЮЛЬ");
+		expect(
+			Array.from(
+				svg?.querySelectorAll(".calendar-blocks-minimal-weekday") ?? [],
+				(element) => element.textContent,
+			),
+		).toEqual(["П", "В", "С", "Ч", "П", "С", "В"]);
+		expect(svg?.getAttribute("role")).toBe("img");
+		expect(svg?.getAttribute("aria-label")).toContain("июль 2025");
+		expect(svg?.querySelector("title")?.textContent).toContain("июль 2025");
+	});
+
+	it("optically aligns minimal range highlights with their day labels", () => {
+		const container = document.createElement("div");
+		renderCalendarSelection(
+			container,
+			{
+				kind: "range",
+				start: { year: 2025, month: 7, day: 21 },
+				end: { year: 2025, month: 7, day: 23 },
+			},
+			"en-US",
+			{ theme: "minimal" },
+		);
+
+		const segment = container.querySelector<SVGPathElement>(
+			'.calendar-blocks-range-segment[data-start-date="2025.07.21"]',
+		);
+		const firstDay = container.querySelector<SVGTextElement>(
+			'.calendar-blocks-minimal-day[data-date="2025.07.21"]',
+		);
+		const segmentStartY = Number(
+			segment?.getAttribute("d")?.match(/^M \S+ (\S+)/)?.[1],
+		);
+
+		expect(segmentStartY + 20).toBe(
+			Number(firstDay?.getAttribute("y")) - 2,
+		);
+	});
+
+	it("rerenders an existing calendar when its design changes", () => {
+		const container = document.createElement("div");
+		renderCalendarSelection(
+			container,
+			{
+				kind: "single",
+				date: { year: 2025, month: 7, day: 27 },
+			},
+			"en-US",
+		);
+		const root = container.querySelector<HTMLElement>(
+			".calendar-blocks-root",
+		);
+
+		expect(root).not.toBeNull();
+		expect(
+			root === null
+				? false
+				: rerenderCalendarRoot(root, { theme: "minimal" }),
+		).toBe(true);
+		expect(
+			container.querySelector(".calendar-blocks-calendar--basic"),
+		).toBeNull();
+		expect(
+			container.querySelector(".calendar-blocks-calendar--minimal"),
 		).not.toBeNull();
 	});
 
@@ -227,6 +338,43 @@ describe("renderCalendarSelection", () => {
 		).not.toBeNull();
 	});
 
+	it("omits adjacent-month dates and highlights from the minimal design", () => {
+		const container = document.createElement("div");
+		renderCalendarSelection(
+			container,
+			{
+				kind: "range",
+				start: { year: 2025, month: 7, day: 30 },
+				end: { year: 2025, month: 8, day: 3 },
+			},
+			"en-US",
+			{ theme: "minimal" },
+		);
+
+		const calendars = container.querySelectorAll<SVGSVGElement>(
+			"svg.calendar-blocks-calendar",
+		);
+		expect(calendars).toHaveLength(2);
+		expect(
+			container.querySelector(".calendar-blocks-outside-month"),
+		).toBeNull();
+		expect(
+			container.querySelector(
+				'.calendar-blocks-range-segment[data-overflow="true"]',
+			),
+		).toBeNull();
+		expect(
+			calendars[0]?.querySelector(
+				'.calendar-blocks-range-segment[data-start-date="2025.07.30"]',
+			),
+		).not.toBeNull();
+		expect(
+			calendars[1]?.querySelector(
+				'.calendar-blocks-range-segment[data-end-date="2025.08.03"]',
+			),
+		).not.toBeNull();
+	});
+
 	it("renders boundary months and a vertical wave for a long range", () => {
 		const container = document.createElement("div");
 		renderCalendarSelection(
@@ -265,5 +413,30 @@ describe("renderCalendarSelection", () => {
 				'.calendar-blocks-range-segment[data-end-date="2025.10.02"]',
 			),
 		).not.toBeNull();
+	});
+
+	it("uses one separator wave in the minimal design", () => {
+		const container = document.createElement("div");
+		renderCalendarSelection(
+			container,
+			{
+				kind: "range",
+				start: { year: 2025, month: 7, day: 27 },
+				end: { year: 2025, month: 10, day: 2 },
+			},
+			"en-US",
+			{ theme: "minimal" },
+		);
+
+		expect(
+			container
+				.querySelector(".calendar-blocks-separator-wave--vertical")
+				?.getAttribute("d"),
+		).toBe("M 60 0 Q 0 30 60 60 T 60 120");
+		expect(
+			container
+				.querySelector(".calendar-blocks-separator-wave--horizontal")
+				?.getAttribute("d"),
+		).toBe("M 0 60 Q 30 0 60 60 T 120 60");
 	});
 });

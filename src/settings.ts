@@ -1,13 +1,19 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 
+import {
+	CALENDAR_THEMES,
+	type CalendarTheme,
+} from "./calendar-renderer";
 import type CalendarBlocksPlugin from "./main";
 
 export interface CalendarBlocksSettings {
 	stretchCalendar: boolean;
+	theme: CalendarTheme;
 }
 
 export const DEFAULT_SETTINGS: CalendarBlocksSettings = {
 	stretchCalendar: false,
+	theme: "minimal",
 };
 
 export class CalendarBlocksSettingTab extends PluginSettingTab {
@@ -22,6 +28,26 @@ export class CalendarBlocksSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 
 		containerEl.empty();
+
+		new Setting(containerEl)
+			.setName("Calendar design")
+			.setDesc("Choose the visual design used to render calendars.")
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption("basic", "Basic")
+					.addOption("minimal", "Minimal")
+					.setValue(this.plugin.settings.theme)
+					.onChange(async (value) => {
+						if (!isCalendarTheme(value)) {
+							return;
+						}
+
+						await this.plugin.updateSettings({
+							...this.plugin.settings,
+							theme: value,
+						});
+					}),
+			);
 
 		new Setting(containerEl)
 			.setName("Stretch calendar")
@@ -39,4 +65,8 @@ export class CalendarBlocksSettingTab extends PluginSettingTab {
 					}),
 			);
 	}
+}
+
+export function isCalendarTheme(value: unknown): value is CalendarTheme {
+	return CALENDAR_THEMES.some((theme) => theme === value);
 }

@@ -2,7 +2,7 @@ import { moment, Plugin } from "obsidian";
 
 import {
 	renderCalendarSelection,
-	STRETCHED_CALENDAR_CLASS,
+	rerenderCalendarRoot,
 } from "./calendar-renderer";
 import { DATE_BLOCK_LANGUAGES } from "./date-block";
 import {
@@ -13,6 +13,7 @@ import {
 	type CalendarBlocksSettings,
 	CalendarBlocksSettingTab,
 	DEFAULT_SETTINGS,
+	isCalendarTheme,
 } from "./settings";
 
 export default class CalendarBlocksPlugin extends Plugin {
@@ -35,6 +36,7 @@ export default class CalendarBlocksPlugin extends Plugin {
 
 			renderCalendarSelection(element, result.value, moment.locale(), {
 				stretchCalendar: this.settings.stretchCalendar,
+				theme: this.settings.theme,
 			});
 		};
 
@@ -64,6 +66,9 @@ export default class CalendarBlocksPlugin extends Plugin {
 			...DEFAULT_SETTINGS,
 			...stored,
 			stretchCalendar: stored?.stretchCalendar === true,
+			theme: isCalendarTheme(stored?.theme)
+				? stored.theme
+				: DEFAULT_SETTINGS.theme,
 		};
 	}
 
@@ -75,10 +80,10 @@ export default class CalendarBlocksPlugin extends Plugin {
 				);
 
 			roots.forEach((root) => {
-				root.classList.toggle(
-					STRETCHED_CALENDAR_CLASS,
-					this.settings.stretchCalendar,
-				);
+				rerenderCalendarRoot(root, {
+					stretchCalendar: this.settings.stretchCalendar,
+					theme: this.settings.theme,
+				});
 			});
 		});
 	}

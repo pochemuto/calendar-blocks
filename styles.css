@@ -58,6 +58,13 @@
 	max-width: none;
 }
 
+.calendar-blocks-root--minimal {
+	--calendar-blocks-break-gap: 0.125rem;
+	--calendar-blocks-break-width: 0.375rem;
+	--calendar-blocks-calendar-width: 12.75rem;
+	--calendar-blocks-gap: var(--size-4-2, 0.5rem);
+}
+
 .calendar-blocks-separator {
 	display: block;
 	width: var(--calendar-blocks-break-width);
@@ -141,6 +148,44 @@
 
 .calendar-blocks-range-segment--outside {
 	fill-opacity: 0.08;
+}
+
+.calendar-blocks-minimal-background {
+	stroke: none;
+}
+
+.calendar-blocks-minimal-month-title {
+	fill: var(--calendar-blocks-red);
+	font-size: 26px;
+	text-transform: uppercase;
+}
+
+.calendar-blocks-minimal-weekday {
+	fill: var(--text-normal);
+	font-size: 22px;
+	font-weight: var(--font-semibold, 600);
+}
+
+.calendar-blocks-minimal-day {
+	font-size: 24px;
+	font-weight: var(--font-medium);
+}
+
+.calendar-blocks-calendar--minimal .calendar-blocks-weekend {
+	fill: var(--text-muted);
+}
+
+.calendar-blocks-selection-circle {
+	fill: var(--calendar-blocks-red);
+}
+
+.calendar-blocks-calendar--minimal .calendar-blocks-minimal-selected-day {
+	fill: var(--text-on-accent, #fff);
+	font-weight: var(--font-bold);
+}
+
+.calendar-blocks-root--minimal .calendar-blocks-separator-wave {
+	opacity: 0.35;
 }
 
 @container calendar-blocks (max-width: 46ch) {

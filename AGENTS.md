@@ -54,9 +54,11 @@ formatting, construct and read it in UTC to avoid timezone and DST shifts.
 
 - The Obsidian Moment locale determines month and weekday labels.
 - Weeks always start on Monday, independently of locale.
-- Saturday and Sunday labels and dates are red.
-- A single selected date has a thin, theme-neutral rounded outline and does
-  not use an accent color.
+- In the basic design, Saturday and Sunday labels and dates are red. In the
+  minimal design, they are muted to match the minimal reference.
+- In the basic design, a single selected date has a thin, theme-neutral
+  rounded outline and does not use an accent color. In the minimal design, it
+  uses a filled red circle with contrasting text.
 - Adjacent range dates within the same week merge into one rounded segment
   with a translucent fill and no outline. Multi-week ranges render one segment
   per week row. An edge that continues into another week is square and flush
@@ -64,17 +66,20 @@ formatting, construct and read it in UTC to avoid timezone and DST shifts.
 - A same-month range renders one calendar.
 - A multi-month range renders only the first and last months. A narrow
   vertical wave separates them when one or more complete months are omitted.
-- For a multi-month range, free cells at the boundary of each displayed month
-  show dimmed dates from the adjacent month. Range segments continue through
-  those overflow dates when they fall inside the selection. The overflow
-  portion of a segment uses a lower fill opacity while remaining visually
-  joined to the main-month portion.
+- In the basic design, free cells at the boundary of each displayed month show
+  dimmed dates from the adjacent month. Range segments continue through those
+  overflow dates when they fall inside the selection. The overflow portion of
+  a segment uses a lower fill opacity while remaining visually joined to the
+  main-month portion. The minimal design omits adjacent-month dates and their
+  range highlights.
 - Two calendars remain side by side while each retains a readable width. A
   container query switches them to a vertical stack before they become too
   compressed. The omitted-month separator changes from a vertical wave to a
   horizontal wave in the stacked layout.
 - The optional **Stretch calendar** setting removes the compact maximum width
   while preserving the responsive one- or two-column layout.
+- The **Calendar design** setting selects the `basic` renderer or the separate,
+  grid-free `minimal` renderer. Minimal is the default.
 - Every SVG must retain its localized `title`, `role="img"`, and `aria-label`.
 - Invalid input must render a compact error instead of throwing.
 

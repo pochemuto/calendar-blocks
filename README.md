@@ -25,6 +25,10 @@ Use a hyphen between two dates for a range:
 
 ## Settings
 
+Use **Calendar design** to choose between the grid-based **Basic** design and
+the default **Minimal** design. Minimal uses narrow weekday labels and a filled
+circle for a single selected date.
+
 Enable **Stretch calendar** in the Calendar Blocks settings to make calendars
 use the full available note width. It is disabled by default, preserving the
 compact layout.
