@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "v?[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    name: Test and build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build plugin
+        run: npm run build
+
+      - name: Verify build contents
+        shell: bash
+        run: |
+          files="$(find build -mindepth 1 -maxdepth 1 -exec basename {} \; | sort | tr '\n' ' ')"
+          expected="main.js manifest.json styles.css "
+
+          if [[ "$files" != "$expected" ]]; then
+            printf 'Unexpected build contents: %s\n' "$files"
+            exit 1
+          fi
+
+      - name: Validate release tag and versions
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tags must have the form 1.2.3 or v1.2.3."
+            exit 1
+          fi
+
+          tag_version="${GITHUB_REF_NAME#v}"
+          package_version="$(node -p "require('./package.json').version")"
+          manifest_version="$(node -p "require('./manifest.json').version")"
+
+          if [[ "$tag_version" != "$package_version" || "$tag_version" != "$manifest_version" ]]; then
+            echo "Tag version ($tag_version), package.json ($package_version), and manifest.json ($manifest_version) must match."
+            exit 1
+          fi
+
+      - name: Create release archive
+        if: startsWith(github.ref, 'refs/tags/')
+        run: zip -j "calendar-blocks-${GITHUB_REF_NAME}.zip" build/main.js build/manifest.json build/styles.css
+
+      - name: Upload release archive
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-archive
+          path: calendar-blocks-${{ github.ref_name }}.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    name: Create GitHub release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download release archive
+        uses: actions/download-artifact@v4
+        with:
+          name: release-archive
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" "calendar-blocks-${GITHUB_REF_NAME}.zip" --generate-notes --verify-tag
