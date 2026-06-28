@@ -16,6 +16,7 @@
     - [ ] A date range spanning adjacent months.
     - [ ] A date range spanning three or more months.
 - [ ] Add plugin settings.
+  - [x] Stretch calendars to the available note width.
   - [ ] Calendar width.
   - [ ] Selected calendar design.
 - [ ] Cache rendered calendars.

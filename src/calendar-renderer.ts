@@ -18,10 +18,18 @@ const WEEKDAY_HEIGHT = 48;
 const DAY_HEIGHT = 72;
 const BOTTOM_PADDING = 20;
 
+export const STRETCHED_CALENDAR_CLASS =
+	"calendar-blocks-root--stretched";
+
+export interface CalendarRenderOptions {
+	stretchCalendar?: boolean;
+}
+
 export function renderCalendarSelection(
 	container: HTMLElement,
 	selection: DateSelection,
 	locale: string,
+	options: CalendarRenderOptions = {},
 ): void {
 	const safeLocale = getSupportedLocale(locale);
 	const display = createCalendarDisplay(selection);
@@ -29,6 +37,10 @@ export function renderCalendarSelection(
 	const calendars = document.createElement("div");
 
 	root.className = "calendar-blocks-root";
+	root.classList.toggle(
+		STRETCHED_CALENDAR_CLASS,
+		options.stretchCalendar === true,
+	);
 	calendars.className = "calendar-blocks-calendars";
 	calendars.classList.add(
 		display.months.length === 1

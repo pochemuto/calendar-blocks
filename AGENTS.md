@@ -39,6 +39,8 @@ Years are limited to `0001` through `9999`.
   decisions here.
 - `src/calendar-renderer.ts` creates the SVG using standard DOM APIs. Do not
   use `innerHTML`; all SVG nodes must be created with `createElementNS`.
+- `src/settings.ts` defines persisted plugin settings and the Obsidian settings
+  tab. New settings must have backward-compatible defaults.
 - `styles.css` contains all plugin styling. Prefix new classes with
   `calendar-blocks-` and prefer Obsidian CSS variables.
 - `tests/` mirrors the parser, model, and renderer layers. Renderer tests use
@@ -71,6 +73,8 @@ formatting, construct and read it in UTC to avoid timezone and DST shifts.
   container query switches them to a vertical stack before they become too
   compressed. The omitted-month separator changes from a vertical wave to a
   horizontal wave in the stacked layout.
+- The optional **Stretch calendar** setting removes the compact maximum width
+  while preserving the responsive one- or two-column layout.
 - Every SVG must retain its localized `title`, `role="img"`, and `aria-label`.
 - Invalid input must render a compact error instead of throwing.
 

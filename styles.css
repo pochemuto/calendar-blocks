@@ -54,6 +54,10 @@
 	);
 }
 
+.calendar-blocks-root--stretched .calendar-blocks-calendars {
+	max-width: none;
+}
+
 .calendar-blocks-separator {
 	display: block;
 	width: var(--calendar-blocks-break-width);

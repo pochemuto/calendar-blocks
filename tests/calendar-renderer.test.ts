@@ -4,7 +4,10 @@
 
 import { describe, expect, it } from "vitest";
 
-import { renderCalendarSelection } from "../src/calendar-renderer";
+import {
+	renderCalendarSelection,
+	STRETCHED_CALENDAR_CLASS,
+} from "../src/calendar-renderer";
 
 describe("renderCalendarSelection", () => {
 	it("renders an accessible SVG calendar for a single date", () => {
@@ -31,6 +34,23 @@ describe("renderCalendarSelection", () => {
 				'.calendar-blocks-selection-outline[data-date="2025.07.27"]',
 			),
 		).not.toBeNull();
+	});
+
+	it("marks a calendar as stretched when requested", () => {
+		const container = document.createElement("div");
+		renderCalendarSelection(
+			container,
+			{
+				kind: "single",
+				date: { year: 2025, month: 7, day: 27 },
+			},
+			"en-US",
+			{ stretchCalendar: true },
+		);
+
+		expect(
+			container.querySelector(".calendar-blocks-root")?.classList,
+		).toContain(STRETCHED_CALENDAR_CLASS);
 	});
 
 	it("marks Saturday and Sunday labels and dates as weekends", () => {
