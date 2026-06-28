@@ -44,15 +44,21 @@ export function renderCalendarSelection(
 		if (index > 0 && display.hasOmittedMonths) {
 			const separator = createSvgElement("svg", {
 				class: "calendar-blocks-separator",
-				viewBox: "0 0 12 120",
+				viewBox: "0 0 120 120",
 				preserveAspectRatio: "none",
 				"aria-hidden": "true",
 				focusable: "false",
 			});
 			separator.append(
 				createSvgElement("path", {
-					class: "calendar-blocks-separator-wave",
-					d: "M 6 0 Q 0 7.5 6 15 T 6 30 T 6 45 T 6 60 T 6 75 T 6 90 T 6 105 T 6 120",
+					class:
+						"calendar-blocks-separator-wave calendar-blocks-separator-wave--vertical",
+					d: "M 60 0 Q 0 7.5 60 15 T 60 30 T 60 45 T 60 60 T 60 75 T 60 90 T 60 105 T 60 120",
+				}),
+				createSvgElement("path", {
+					class:
+						"calendar-blocks-separator-wave calendar-blocks-separator-wave--horizontal",
+					d: "M 0 60 Q 7.5 0 15 60 T 30 60 T 45 60 T 60 60 T 75 60 T 90 60 T 105 60 T 120 60",
 				}),
 			);
 			calendars.append(separator);

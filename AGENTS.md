@@ -67,8 +67,10 @@ formatting, construct and read it in UTC to avoid timezone and DST shifts.
   those overflow dates when they fall inside the selection. The overflow
   portion of a segment uses a lower fill opacity while remaining visually
   joined to the main-month portion.
-- Two calendars always remain side by side and shrink together in a narrow
-  container.
+- Two calendars remain side by side while each retains a readable width. A
+  container query switches them to a vertical stack before they become too
+  compressed. The omitted-month separator changes from a vertical wave to a
+  horizontal wave in the stacked layout.
 - Every SVG must retain its localized `title`, `role="img"`, and `aria-label`.
 - Invalid input must render a compact error instead of throwing.
 
@@ -150,7 +152,7 @@ changes, manually check:
 - Live Preview and Reading mode;
 - light and dark Obsidian themes;
 - a single date, a same-month range, and a multi-month range;
-- a narrow pane where two calendars must remain horizontal without overflow;
+- a narrow pane where two calendars must stack without overflow;
 - localized labels and red Saturday/Sunday styling.
 
 Do not commit `build/` or `node_modules/`; both are intentionally ignored.

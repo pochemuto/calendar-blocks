@@ -224,7 +224,12 @@ describe("renderCalendarSelection", () => {
 		).toHaveLength(2);
 		expect(
 			container.querySelector(
-				"svg.calendar-blocks-separator .calendar-blocks-separator-wave",
+				"svg.calendar-blocks-separator .calendar-blocks-separator-wave--vertical",
+			),
+		).not.toBeNull();
+		expect(
+			container.querySelector(
+				"svg.calendar-blocks-separator .calendar-blocks-separator-wave--horizontal",
 			),
 		).not.toBeNull();
 		expect(
