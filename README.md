@@ -22,7 +22,8 @@ calendars.
 ````
 ```dates
 Vacation: 7 May 2027 - 17 May
-Birhday: 9 May
+Birthday: 9 May
+Conference: 19 May
 ```
 ````
 
