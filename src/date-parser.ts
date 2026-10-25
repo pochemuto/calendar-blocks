@@ -267,8 +267,8 @@ function parseCalendarDate(
 	let year: number | undefined;
 	let month: number;
 	let day: number;
-	const yearFirst = /^(\d{4})[.\/-](\d{1,2})[.\/-](\d{1,2})$/.exec(value);
-	const dayFirst = /^(\d{1,2})[.\/](\d{1,2})(?:[.\/](\d{4}))?$/.exec(value);
+	const yearFirst = /^(\d{4})[./-](\d{1,2})[./-](\d{1,2})$/.exec(value);
+	const dayFirst = /^(\d{1,2})[./](\d{1,2})(?:[./](\d{4}))?$/.exec(value);
 	const named = patterns.named.exec(value);
 	if (yearFirst) {
 		year = Number(yearFirst[1]);
