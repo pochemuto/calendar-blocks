@@ -36,8 +36,11 @@ Put each range or single date on its own line in the same block:
 ```
 ````
 
-All entries appear together. Ranges and single dates use a predefined palette of
-40 colors in source-line order, starting with red, blue, and green. Each entry keeps its color
+All entries appear together. Ranges and single dates use two independent pools
+of the same 40-color palette, each starting with red, blue, and green in source
+order. The first single date and the first range are both red; adding a single
+date does not advance the range colors, and vice versa. A range with identical
+endpoints still uses the range pool. Each entry keeps its color
 across weeks and months. Overlapping ranges retain their translucent layers,
 so their colors blend at intersections. Single dates appear as colored circles above all ranges,
 regardless of line order. Blank lines are ignored; an invalid entry reports its
@@ -68,7 +71,7 @@ marker on the left. Ranges use a pill about 1.47 times as wide as a single-date 
 matching the range's color and transparency. Single dates use solid circles.
 Markers share a column and align to its right edge, keeping all labels aligned.
 Unlabeled entries are omitted from the
-legend but still consume their palette color. If no entries have labels, no
+legend but still consume a color from their type's pool. If no entries have labels, no
 legend is shown. Labels support plain text, including spaces and Unicode.
 
 ### Supported date formats
@@ -213,7 +216,7 @@ settings.
 
 ## Visual regression tests
 
-`npm test` runs unit tests and 48 screenshot comparisons (24 cases in light and
+`npm test` runs unit tests and 52 screenshot comparisons (26 cases in light and
 dark themes). Visual tests require a running Docker engine. The first run
 downloads the pinned Playwright image. Local runs and CI use the same Linux
 arm64 image, Chromium version, bundled Noto Sans font, locale, timezone and

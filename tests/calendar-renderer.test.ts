@@ -434,18 +434,34 @@ describe("selection colors", () => {
 		renderCalendarSelection(container, parsed.value, "en-US");
 		return container;
 	}
-	it("assigns red, blue and green to mixed entries in source order", () => {
+	it("assigns colors to single dates and ranges from independent pools", () => {
 		const container = render("2026.06.10\n\n2026.06.05 - 2026.06.11\n2026.06.10");
 		const circles = container.querySelectorAll<SVGCircleElement>(".calendar-blocks-selection-circle");
 		const segments = container.querySelectorAll<SVGPathElement>(".calendar-blocks-range-segment");
 		expect(circles).toHaveLength(2);
 		expect(circles[0].style.getPropertyValue("--calendar-blocks-selection-color")).toBe(SELECTION_COLORS[0]);
-		expect(circles[1].style.getPropertyValue("--calendar-blocks-selection-color")).toBe("#16a34a");
+		expect(circles[1].style.getPropertyValue("--calendar-blocks-selection-color")).toBe(SELECTION_COLORS[1]);
 		for (const segment of Array.from(segments)) {
-			expect(segment.style.getPropertyValue("--calendar-blocks-range-color")).toBe("#2563eb");
+			expect(segment.style.getPropertyValue("--calendar-blocks-range-color")).toBe(SELECTION_COLORS[0]);
 			for (const circle of Array.from(circles)) {
 				expect(segment.compareDocumentPosition(circle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 			}
+		}
+	});
+	it("adding entries of either kind leaves the other kind's colors unchanged", () => {
+		const singles = ["2026.07.10", "2026.06.10", "2026.06.11"];
+		const ranges = ["2026.06.08 - 2026.06.12", "2026.06.10 - 2026.06.10", "2026.07.01 - 2026.07.03"];
+		const mixed = render(singles.flatMap((single, index) => [single, ranges[index]]).join("\n"));
+		function colors(container: HTMLElement, selector: string, property: string): string[] {
+			return Array.from(container.querySelectorAll<SVGElement>(selector), (shape) =>
+				shape.style.getPropertyValue(property),
+			);
+		}
+		for (const [lines, selector, property] of [
+			[singles, ".calendar-blocks-selection-circle", "--calendar-blocks-selection-color"],
+			[ranges, ".calendar-blocks-range-segment", "--calendar-blocks-range-color"],
+		] as const) {
+			expect(colors(mixed, selector, property)).toEqual(colors(render(lines.join("\n")), selector, property));
 		}
 	});
 	it("keeps range colors across weeks and months, regardless of month order", () => {
@@ -456,11 +472,11 @@ describe("selection colors", () => {
 			const june = calendars[0].querySelectorAll<SVGPathElement>(".calendar-blocks-range-segment");
 			expect(june).toHaveLength(3);
 			expect(Array.from(june, (path) => path.style.getPropertyValue("--calendar-blocks-range-color")))
-				.toEqual([SELECTION_COLORS[1], SELECTION_COLORS[1], SELECTION_COLORS[2]]);
+				.toEqual([SELECTION_COLORS[0], SELECTION_COLORS[0], SELECTION_COLORS[1]]);
 			const july = calendars[1].querySelectorAll<SVGPathElement>(".calendar-blocks-range-segment");
 			expect(july).toHaveLength(2);
 			for (const path of Array.from(july)) {
-				expect(path.style.getPropertyValue("--calendar-blocks-range-color")).toBe(SELECTION_COLORS[1]);
+				expect(path.style.getPropertyValue("--calendar-blocks-range-color")).toBe(SELECTION_COLORS[0]);
 			}
 			expect(calendars[2].querySelector<SVGCircleElement>("circle")?.style.getPropertyValue("--calendar-blocks-selection-color"))
 				.toBe(SELECTION_COLORS[0]);
@@ -469,9 +485,9 @@ describe("selection colors", () => {
 		rerenderCalendarRoot(container.querySelector<HTMLElement>(".calendar-blocks-root")!, { stretchCalendar: true });
 		expectColors();
 	});
-	it("renders all 40 palette colors without wrapping or dropping entries", () => {
-		const source = Array.from({ length: 40 }, (_, index) =>
-			index % 2 === 0 ? "2026.06.10 - 2026.06.10" : "2026.06.10",
+	it.each(["single", "range"])("renders all 40 colors for %s entries without wrapping or dropping entries", (kind) => {
+		const source = Array.from({ length: 40 }, () =>
+			kind === "range" ? "2026.06.10 - 2026.06.10" : "2026.06.10",
 		).join("\n");
 		const container = render(source);
 		const shapes = container.querySelectorAll<SVGElement>(".calendar-blocks-range-segment, .calendar-blocks-selection-circle");
@@ -536,15 +552,15 @@ describe("legend", () => {
 			expect(markers[0].classList).toContain("calendar-blocks-legend-marker--range");
 			expect(markers[1].classList).not.toContain("calendar-blocks-legend-marker--range");
 			expect(Array.from(markers, (marker) => marker.style.getPropertyValue("--calendar-blocks-selection-color")))
-				.toEqual([SELECTION_COLORS[1], SELECTION_COLORS[3]]);
+				.toEqual([SELECTION_COLORS[0], SELECTION_COLORS[2]]);
 			for (const marker of Array.from(markers)) {
 				expect(marker.getAttribute("aria-hidden")).toBe("true");
 				expect(marker.nextElementSibling?.classList).toContain("calendar-blocks-legend-label");
 			}
 			const range = container.querySelector<SVGPathElement>(".calendar-blocks-range-segment")!;
-			expect(range.style.getPropertyValue("--calendar-blocks-range-color")).toBe(SELECTION_COLORS[1]);
+			expect(range.style.getPropertyValue("--calendar-blocks-range-color")).toBe(SELECTION_COLORS[0]);
 			const birthday = container.querySelector<SVGCircleElement>('.calendar-blocks-selection-circle[data-date="2026.05.10"]')!;
-			expect(birthday.style.getPropertyValue("--calendar-blocks-selection-color")).toBe(SELECTION_COLORS[3]);
+			expect(birthday.style.getPropertyValue("--calendar-blocks-selection-color")).toBe(SELECTION_COLORS[2]);
 		}
 		checkLegend();
 		rerenderCalendarRoot(container.querySelector<HTMLElement>(".calendar-blocks-root")!, { stretchCalendar: true });

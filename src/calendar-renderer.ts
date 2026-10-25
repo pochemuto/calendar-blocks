@@ -9,7 +9,7 @@ import {
 	formatCalendarDate,
 	getDateEntries,
 } from "./date-parser";
-import { SELECTION_COLORS } from "./selection-palette";
+import { getEntryColors } from "./selection-palette";
 
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 const MINIMAL_SVG_WIDTH = 420;
@@ -135,7 +135,9 @@ export function renderCalendarSelection(
 function createLegend(selection: DateSelection): HTMLUListElement | null {
 	const legend = document.createElement("ul");
 	legend.className = "calendar-blocks-legend";
-	getDateEntries(selection).forEach((entry, index) => {
+	const entries = getDateEntries(selection);
+	const colors = getEntryColors(entries);
+	entries.forEach((entry, index) => {
 		if (!entry.label) return;
 		const item = document.createElement("li");
 		item.className = "calendar-blocks-legend-item";
@@ -145,7 +147,7 @@ function createLegend(selection: DateSelection): HTMLUListElement | null {
 			marker.classList.add("calendar-blocks-legend-marker--range");
 		}
 		marker.setAttribute("aria-hidden", "true");
-		marker.style.setProperty("--calendar-blocks-selection-color", SELECTION_COLORS[index]);
+		marker.style.setProperty("--calendar-blocks-selection-color", colors[index]);
 		const label = document.createElement("span");
 		label.className = "calendar-blocks-legend-label";
 		label.textContent = entry.label;
@@ -295,11 +297,13 @@ function appendMinimalHighlights(
 	cellWidth: number,
 	selection: DateSelection,
 ): void {
+	const entries = getDateEntries(selection);
+	const colors = getEntryColors(entries);
 	// Paint each range separately so translucent fills accumulate at intersections.
-	// Use the whole block's entry index, including entries outside this month.
-	getDateEntries(selection).forEach((entry, index) => {
+	// Assign colors across the whole block, including entries outside this month.
+	entries.forEach((entry, index) => {
 		if (entry.kind !== "range") return;
-		const color = SELECTION_COLORS[index];
+		const color = colors[index];
 		const layerDays = days.map((day) => ({
 			...day,
 			highlight: day.highlights[index],
@@ -314,13 +318,13 @@ function appendMinimalHighlights(
 		});
 	});
 	// Single dates always cover ranges, independent of their source-line order.
-	getDateEntries(selection).forEach((entry, index) => {
+	entries.forEach((entry, index) => {
 		if (entry.kind !== "single") return;
 		const day = days.find((day) => day.highlights[index] === "single");
 		if (day === undefined) return;
 		svg.append(createSvgElement("circle", {
 			class: "calendar-blocks-selection-circle",
-			style: `--calendar-blocks-selection-color: ${SELECTION_COLORS[index]}`,
+			style: `--calendar-blocks-selection-color: ${colors[index]}`,
 			cx: MINIMAL_GRID_LEFT + (day.weekday + 0.5) * cellWidth,
 			cy: MINIMAL_GRID_TOP + MINIMAL_WEEKDAY_HEIGHT +
 				(day.week + 0.5) * MINIMAL_DAY_HEIGHT + MINIMAL_HIGHLIGHT_OFFSET_Y,

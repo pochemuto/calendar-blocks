@@ -1,4 +1,4 @@
-// Stable source-order colors, shared by every month and week of an entry.
+// Each entry kind uses this palette independently, in source order.
 export const SELECTION_COLORS = [
 	"var(--calendar-blocks-red, #d32f2f)",
 	"#2563eb",
@@ -43,3 +43,10 @@ export const SELECTION_COLORS = [
 ] as const;
 
 export const MAX_DATE_ENTRIES = SELECTION_COLORS.length;
+
+export function getEntryColors(
+	entries: readonly { kind: "single" | "range" }[],
+): string[] {
+	const nextIndex = { single: 0, range: 0 };
+	return entries.map((entry) => SELECTION_COLORS[nextIndex[entry.kind]++]);
+}

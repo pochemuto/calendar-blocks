@@ -41,8 +41,11 @@ Years are limited to `0001` through `9999`.
 Multiple ranges and single dates may be combined in one block, one entry per
 line. Blank lines are ignored. Invalid entries reject the whole block and report
 the source line. Range highlights remain independent translucent layers; single
-date circles are rendered above every range. Ranges and single dates use the 40-color palette in
-`src/selection-palette.ts` in source order, starting with red, blue, and green.
+date circles are rendered above every range. Ranges and single dates use two
+independent pools of the 40-color palette in `src/selection-palette.ts`, each
+in source order, starting with red, blue, and green. Entries of one type must
+not advance the other type's colors. A range with identical endpoints uses the
+range pool.
 Preserve each entry's color across months and weeks. Reject blocks with more than
 40 entries in total (ranges and single dates) in the parser. Blank lines do not
 consume colors or count toward the limit. Show the sorted union of endpoint
@@ -55,8 +58,8 @@ SVG descriptions. If any entries have labels, render a legend below all calendar
 with one labeled entry per line and a marker on the left: a pill for ranges
 (about 1.47 times the circle diameter, matching range color and opacity), or a solid circle
 for single dates. Align markers to the right of a shared column so labels align.
-Use the entry's
-original palette index, including unlabeled entries; omit unlabeled legend items.
+Use the entry's original palette index within its type's pool, including
+unlabeled entries of that type; omit unlabeled legend items.
 Render label text with `textContent`, never HTML.
 
 ## Architecture

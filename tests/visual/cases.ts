@@ -18,6 +18,7 @@ export const visualCases: VisualCase[] = [
 	{ name: "adjacent-months-narrow", source: "2026.06.25 - 2026.07.05", width: 280 },
 	{ name: "omitted-months-narrow", source: "2026.06.05 - 2026.10.05", width: 280 },
 	{ name: "overlapping-selections", source: "2026.06.10\n2026.06.05 - 2026.06.18\n2026.06.09 - 2026.06.23\n2026.06.14" },
+	{ name: "independent-color-pools", source: "First date: 1 Jun\nFirst range: 2 Jun - 4 Jun\n10 Jun\nSecond range: 12 Jun - 12 Jun\nThird date: 15 Jun\nThird range: 16 Jun - 18 Jun" },
 	{ name: "multiple-rows", source: "2026.12.01\n2026.06.25 - 2026.07.05\n2026.09.01\n2027.01.01" },
 	{ name: "multiple-rows-narrow", source: "2026.12.01\n2026.06.25 - 2026.07.05\n2026.09.01\n2027.01.01", width: 280 },
 	{ name: "legend", source: "1 Jun\nVacation: 5 Jun - 18 Jun\nBirthday: 10 Jun\nConference: 14 Jun - 15 Jun" },
@@ -32,6 +33,10 @@ export const visualCases: VisualCase[] = [
 	{ name: "six-week-month", source: "2026.03.01 - 2026.03.31" },
 	{ name: "year-boundary", source: "2026.12.28 - 2027.01.04" },
 	{ name: "full-palette", source: Array.from({ length: 40 }, (_, index) =>
-		`Color ${index + 1}: ${index < 20 ? `${index + 1} Jun - ${index + 2} Jun` : `${index - 19} Jul`}`,
+		`Color ${index + 1}: ${index < 30 ? `${index + 1} Jun` : `${index - 29} Jul`}`,
 	).join("\n") },
+	{ name: "full-range-palette", source: Array.from({ length: 40 }, (_, index) => {
+		const date = index < 30 ? `${index + 1} Jun` : `${index - 29} Jul`;
+		return `Color ${index + 1}: ${date} - ${date}`;
+	}).join("\n") },
 ];
