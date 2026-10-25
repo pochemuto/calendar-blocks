@@ -26,15 +26,22 @@ The parser accepts outer whitespace and spaces or tabs around range separators
 `D/M/YYYY`), and month names (`D Mon YYYY`, `D Month YYYY`) from the system locale and
 Obsidian Moment locale. Generate full/short and standalone/date-context month
 names with Intl in UTC, retaining English aliases. Days and
-months may use one or two digits. Day-first dates may omit the year. Single dates
-and ranges with both years omitted use the source note creation year, supplied
+months may use one or two digits. Day-first dates may omit the year. In the first
+entry, single dates and ranges with both years omitted use the source note creation year, supplied
 to the DOM-free parser by the code-block processor, as the single/start year.
 A range end without a year uses the start's year, advancing one year if its
 month/day precedes the start. A range start without a year uses an explicit end's
 year, moving back one year if its month/day follows the end. Explicit endpoint
 years take precedence over creation metadata and are never adjusted. Missing
-source metadata requires an explicit year for a single date or either range
-endpoint rather than defaulting to the current year. It validates Gregorian dates,
+source metadata requires an explicit year for the first single date or either
+endpoint of the first range rather than defaulting to the current year. Subsequent
+yearless single dates and starts of wholly yearless ranges choose the year that
+places the date closest to the inclusive interval spanning all previously resolved
+entries. Measure distance in Gregorian days; ties choose the earliest occurrence.
+Only valid dates are candidates, including leap years. This context takes precedence
+over creation metadata, but explicit years and inference from the other endpoint
+of the same range still take priority. Each entry expands the interval; blank
+lines do not reset it. It validates Gregorian dates,
 including leap years, and rejects ranges whose start is later than their end.
 Years are limited to `0001` through `9999`.
 

@@ -3,6 +3,56 @@
 Calendar Blocks is an Obsidian plugin for rendering dates and date ranges as
 calendars.
 
+## Examples
+
+### Single date
+
+````
+```date
+2026.06.06
+```
+````
+
+<img src="docs/images/minimal-single-date.png"
+     alt="A minimal calendar with June 6 selected"
+     width="200">
+
+### Range within one month
+
+````
+```date
+2026.06.05 - 2026.06.11
+```
+````
+
+<img src="docs/images/minimal-same-month-range.png"
+     alt="A minimal calendar with a range from June 5 through June 11"
+     width="200">
+
+### Range across adjacent months
+
+````
+```date
+2026.06.05 - 2026.07.05
+```
+````
+
+<img src="docs/images/minimal-adjacent-month-range.png"
+     alt="Minimal calendars with a range from June 5 through July 5"
+     width="400">
+
+### Range with omitted months
+
+````
+```date
+2026.06.05 - 2026.10.05
+```
+````
+
+<img src="docs/images/minimal-omitted-months-range.png"
+     alt="Minimal calendars with a range from June 5 through October 5 and a wave for omitted months"
+     width="400">
+
 ## Usage
 
 Use a fenced `date` code block for a single date:
@@ -87,12 +137,12 @@ Dates accept one- or two-digit days and months:
   English names (`2 Mar 2026`, `2 March 2026`) are always accepted.
 - Without a year: `2.3`, `02/03`, `2 Mar`.
 
-When a single date or both range endpoints omit their years, the plugin uses the source
+For the first entry, when a single date or both range endpoints omit their years, the plugin uses the source
 note's creation year (Obsidian's file creation timestamp). It does not use the
 current year or the last modification year. If both range years are omitted,
 the creation year determines the start year and the end may roll into the next year.
-If the source note is unavailable, specify the year of the single date or either
-range endpoint explicitly.
+If the source note is unavailable, specify the year of the first single date or either
+endpoint of the first range explicitly.
 
 A range end without a year uses the start's year, advancing to the next year
 when its month/day would fall before the start. For example,
@@ -100,6 +150,19 @@ when its month/day would fall before the start. For example,
 year. Conversely, `28 Dec - 1 Jan 2006` starts on December 28, 2005: an omitted
 start year uses the end's year, moving back one year if its month/day would fall
 after the end. Explicit years are always respected.
+
+For subsequent entries, a single date without a year (or the start of a range
+with both years omitted) uses the year that places it closest to the interval
+from the earliest to the latest previously resolved date in the block. Dates
+inside that interval have zero distance; ties choose the earliest occurrence.
+This takes precedence over the note creation year. Each resolved entry expands
+the interval, and blank lines do not reset it. A yearless February 29 uses the
+nearest valid leap year. Explicit years and inference from the other endpoint
+of the same range retain priority.
+
+For example, `Vacation: 7 May 2027 - 17 May` followed by `Birthday: 9 May`
+puts all dates in 2027. With `30 Dec 2010 - 7 Jan`, the range ends in 2011;
+a following `9 Jan` resolves to 2011, while `5 Dec` resolves to 2010.
 
 For example, in a note created in 2026:
 
@@ -113,56 +176,6 @@ This selects March 1 through April 4, 2026. Formats can be mixed within a
 range; hyphens, en dashes and em dashes are accepted as separators. Invalid
 calendar dates and reversed ranges with explicit years are rejected. Ranges
 crossing New Year can omit the end year, for example `31 Dec 2026 - 1 Jan`.
-
-## Examples
-
-### Single date
-
-````
-```date
-2026.06.06
-```
-````
-
-<img src="docs/images/minimal-single-date.png"
-     alt="A minimal calendar with June 6 selected"
-     width="200">
-
-### Range within one month
-
-````
-```date
-2026.06.05 - 2026.06.11
-```
-````
-
-<img src="docs/images/minimal-same-month-range.png"
-     alt="A minimal calendar with a range from June 5 through June 11"
-     width="200">
-
-### Range across adjacent months
-
-````
-```date
-2026.06.05 - 2026.07.05
-```
-````
-
-<img src="docs/images/minimal-adjacent-month-range.png"
-     alt="Minimal calendars with a range from June 5 through July 5"
-     width="400">
-
-### Range with omitted months
-
-````
-```date
-2026.06.05 - 2026.10.05
-```
-````
-
-<img src="docs/images/minimal-omitted-months-range.png"
-     alt="Minimal calendars with a range from June 5 through October 5 and a wave for omitted months"
-     width="400">
 
 ## Settings
 
@@ -240,7 +253,7 @@ GitHub releases. See the official
 
 ## Visual regression tests
 
-`npm test` runs unit tests and 52 screenshot comparisons (26 cases in light and
+`npm test` runs unit tests and 56 screenshot comparisons (28 cases in light and
 dark themes). Visual tests require a running Docker engine. The first run
 downloads the pinned Playwright image. Local runs and CI use the same Linux
 arm64 image, Chromium version, bundled Noto Sans font, locale, timezone and

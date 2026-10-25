@@ -71,6 +71,11 @@ interface DatePatterns {
 
 const localePatterns = new Map<string, DatePatterns>();
 
+interface DateSpan {
+	start: CalendarDate;
+	end: CalendarDate;
+}
+
 function normalizeMonth(value: string): string {
 	return value.normalize("NFC").replace(/\.$/, "").toLowerCase();
 }
@@ -139,9 +144,10 @@ export function parseDateInput(
 	const lines = source.trim().split(/\r?\n/);
 	if (lines.length > 1) {
 		const entries: DateEntry[] = [];
+		let previousSpan: DateSpan | undefined;
 		for (const [index, line] of lines.entries()) {
 			if (line.trim() === "") continue;
-			const result = parseDateInput(line, defaultYear, locale);
+			const result = parseDateEntry(line, defaultYear, locale, previousSpan);
 			if (!result.ok) {
 				return { ...result, message: `Line ${index + 1}: ${result.message}` };
 			}
@@ -152,10 +158,29 @@ export function parseDateInput(
 				);
 			}
 			entries.push(...getDateEntries(result.value));
+			for (const entry of getDateEntries(result.value)) {
+				const start = entry.kind === "single" ? entry.date : entry.start;
+				const end = entry.kind === "single" ? entry.date : entry.end;
+				previousSpan = {
+					start: previousSpan && compareCalendarDates(previousSpan.start, start) < 0
+						? previousSpan.start : start,
+					end: previousSpan && compareCalendarDates(previousSpan.end, end) > 0
+						? previousSpan.end : end,
+				};
+			}
 		}
 		if (entries.length === 1) return { ok: true, value: entries[0] };
 		return { ok: true, value: { kind: "multiple", entries } };
 	}
+	return parseDateEntry(source, defaultYear, locale);
+}
+
+function parseDateEntry(
+	source: string,
+	defaultYear?: number,
+	locale?: string,
+	previousSpan?: DateSpan,
+): DateParseResult {
 	const patterns = getDatePatterns(locale);
 	let input = source.trim().normalize("NFC");
 	let label: string | undefined;
@@ -191,7 +216,7 @@ export function parseDateInput(
 		// An explicit end year takes precedence over the note's creation year.
 		startResult = explicitEnd?.ok
 			? parseCalendarDate(match[0], patterns, undefined, explicitEnd.value, "before")
-			: parseCalendarDate(match[0], patterns, defaultYear);
+			: parseCalendarDate(match[0], patterns, defaultYear, undefined, "after", previousSpan);
 	}
 	if (!startResult.ok) {
 		return startResult;
@@ -237,6 +262,7 @@ function parseCalendarDate(
 	defaultYear?: number,
 	referenceDate?: CalendarDate,
 	direction: "before" | "after" = "after",
+	previousSpan?: DateSpan,
 ): { ok: true; value: CalendarDate } | Exclude<DateParseResult, { ok: true }> {
 	let year: number | undefined;
 	let month: number;
@@ -249,11 +275,11 @@ function parseCalendarDate(
 		month = Number(yearFirst[2]);
 		day = Number(yearFirst[3]);
 	} else if (dayFirst) {
-		year = dayFirst[3] === undefined ? defaultYear : Number(dayFirst[3]);
+		year = dayFirst[3] === undefined ? undefined : Number(dayFirst[3]);
 		month = Number(dayFirst[2]);
 		day = Number(dayFirst[1]);
 	} else if (named) {
-		year = named[3] === undefined ? defaultYear : Number(named[3]);
+		year = named[3] === undefined ? undefined : Number(named[3]);
 		month = patterns.months.get(normalizeMonth(named[2])) ?? 0;
 		day = Number(named[1]);
 	} else {
@@ -269,6 +295,10 @@ function parseCalendarDate(
 		if (direction === "before" && monthDayOrder > 0) year -= 1;
 		if (direction === "after" && monthDayOrder < 0) year += 1;
 	}
+	if (year === undefined && previousSpan !== undefined) {
+		year = nearestYear(month, day, previousSpan);
+	}
+	if (year === undefined) year = defaultYear;
 	if (year === undefined) {
 		return failure(
 			"missing-year",
@@ -295,6 +325,33 @@ function parseCalendarDate(
 		ok: true,
 		value: { year, month, day },
 	};
+}
+
+// Gregorian ordinal days avoid time zones and Date's special handling of years 0–99.
+function ordinalDay(date: CalendarDate): number {
+	const year = date.year - 1;
+	let days = 365 * year + Math.floor(year / 4) - Math.floor(year / 100) + Math.floor(year / 400);
+	for (let month = 1; month < date.month; month++) days += daysInMonth(date.year, month);
+	return days + date.day;
+}
+
+function nearestYear(month: number, day: number, span: DateSpan): number {
+	let bestYear = span.start.year;
+	let bestDistance = Infinity;
+	const start = ordinalDay(span.start);
+	const end = ordinalDay(span.end);
+	// Eight years cover even the leap-day gap across a non-leap century.
+	for (let year = Math.max(1, span.start.year - 8); year <= Math.min(9999, span.end.year + 8); year++) {
+		if (month < 1 || month > 12 || day < 1 || day > daysInMonth(year, month)) continue;
+		const date = ordinalDay({ year, month, day });
+		const distance = Math.max(start - date, date - end, 0);
+		// Ascending years make ties deterministic: choose the earliest occurrence.
+		if (distance < bestDistance) {
+			bestYear = year;
+			bestDistance = distance;
+		}
+	}
+	return bestYear;
 }
 
 export function daysInMonth(year: number, month: number): number {

@@ -229,7 +229,7 @@ describe("multiple date entries", () => {
 	it.each([
 		["2026.03.01\n2026.02.30", "invalid-day", "Line 2"],
 		["2026.03.01\n\n2026.04.02 - 2026.04.01", "reversed-range", "Line 3"],
-		["2026.03.01\n1 Mar", "missing-year", "Line 2"],
+		["1 Mar\n2026.03.01", "missing-year", "Line 1"],
 		["2026.03.01 -\n2026.03.02", "invalid-format", "Line 1"],
 	])("rejects the entire block for an invalid line", (source, code, line) => {
 		expect(parseDateInput(source)).toMatchObject({ ok: false, code, message: expect.stringContaining(line) });
@@ -239,6 +239,43 @@ describe("multiple date entries", () => {
 		const result = parseDateInput(source);
 		if (!result.ok) throw new Error(result.message);
 		expect(formatDateSelection(result.value)).toBe(source);
+	});
+});
+
+describe("years inferred from previous entries", () => {
+	it.each([
+		["Vacation: 7 May 2027 - 17 May\nBirthday: 9 May", "Vacation: 2027.05.07 - 2027.05.17\nBirthday: 2027.05.09"],
+		["30 Dec 2010 - 7 Jan\n9 Jan\n5 Dec", "2010.12.30 - 2011.01.07\n2011.01.09\n2010.12.05"],
+		["2026.03.01\n1 Mar", "2026.03.01\n2026.03.01"],
+		["31 Dec 2010\n1 Jan - 7 Jan", "2010.12.31\n2011.01.01 - 2011.01.07"],
+		["1 Jan 2011\n31 Dec", "2011.01.01\n2010.12.31"],
+		["1 Jan 2010\n1 Jan 2020\n2 Jan", "2010.01.01\n2020.01.01\n2010.01.02"],
+		["1 Jan 2010\n1 Jan 2020\n31 Dec 2009\n30 Dec", "2010.01.01\n2020.01.01\n2009.12.31\n2010.12.30"],
+		["1 Jan 2027\n28 Dec - 1 Jan 2006", "2027.01.01\n2005.12.28 - 2006.01.01"],
+		["1 Jan 2027\n9 May 2000", "2027.01.01\n2000.05.09"],
+		["1 Jan 2027\n\n9.5\n10/5", "2027.01.01\n2027.05.09\n2027.05.10"],
+		["1 Sep 2023\n29 Feb", "2023.09.01\n2024.02.29"],
+		["1 Jan 2100\n29 Feb", "2100.01.01\n2096.02.29"],
+		["1 Jan 0001\n31 Dec", "0001.01.01\n0001.12.31"],
+		["31 Dec 9999\n1 Jan", "9999.12.31\n9999.01.01"],
+		["2 Jul 2025\n1 Jan", "2025.07.02\n2025.01.01"],
+	])("resolves %s using the entire preceding span", (source, expected) => {
+		for (const creationYear of [undefined, 2004]) {
+			const result = parseDateInput(source, creationYear);
+			if (!result.ok) throw new Error(result.message);
+			expect(formatDateSelection(result.value)).toBe(expected);
+			expect(parseDateInput(expected)).toEqual(result);
+		}
+	});
+	it("uses creation metadata for the first entry, then extends the span", () => {
+		const result = parseDateInput("30 Dec - 7 Jan\n9 Jan\n5 Dec", 2010);
+		if (!result.ok) throw new Error(result.message);
+		expect(formatDateSelection(result.value)).toBe("2010.12.30 - 2011.01.07\n2011.01.09\n2010.12.05");
+	});
+	it.each(["31 Apr", "30 Feb", "1 Jan 0000", "7 May 2027 - 1 May 2027"])("still rejects invalid entries: %s", (entry) => {
+		expect(parseDateInput(`7 May 2027\n${entry}`)).toMatchObject({
+			ok: false, message: expect.stringContaining("Line 2"),
+		});
 	});
 });
 
