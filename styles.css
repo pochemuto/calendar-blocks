@@ -45,7 +45,7 @@
 		minmax(0, 1fr)
 		var(--calendar-blocks-break-width)
 		minmax(0, 1fr);
-	column-gap: var(--calendar-blocks-break-gap);
+	gap: var(--calendar-blocks-gap) var(--calendar-blocks-break-gap);
 	max-width: calc(
 		var(--calendar-blocks-calendar-width) +
 		var(--calendar-blocks-calendar-width) +
@@ -182,7 +182,7 @@
 	}
 
 	.calendar-blocks-calendars--omitted {
-		row-gap: var(--calendar-blocks-break-gap);
+		gap: var(--calendar-blocks-break-gap);
 	}
 
 	.calendar-blocks-separator {
