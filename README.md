@@ -254,6 +254,17 @@ prefix (for example, `0.1.1`). Pushing that tag runs CI and publishes a GitHub
 release with `main.js`, `manifest.json`, and `styles.css` as individual assets,
 plus a ZIP archive for manual installation.
 
+Before publishing the release, CI generates GitHub build provenance attestations
+for the three individual plugin assets. The signing permissions are restricted
+to the release job, which runs only for version tags after tests and the build
+succeed. Verify downloaded assets with the GitHub CLI:
+
+```sh
+gh attestation verify main.js --repo pochemuto/calendar-blocks
+gh attestation verify manifest.json --repo pochemuto/calendar-blocks
+gh attestation verify styles.css --repo pochemuto/calendar-blocks
+```
+
 The initial directory submission is made through
 [Obsidian Community](https://community.obsidian.md) after signing in and
 connecting the repository owner's GitHub account. Subsequent updates use
