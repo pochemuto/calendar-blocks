@@ -2,7 +2,7 @@
 
 ## Project overview
 
-Calendar Blocks is an Obsidian plugin that renders strict `date` fenced code
+Calendar Blocks is an Obsidian plugin that renders `date` fenced code
 blocks as responsive SVG calendars in Live Preview and Reading mode. The
 `dates` block name is an exact alias.
 
@@ -20,8 +20,16 @@ Supported input:
 ```
 ````
 
-The parser accepts outer whitespace and spaces or tabs around the hyphen, but
-the dates themselves must use `YYYY.MM.DD`. It validates Gregorian dates,
+The parser accepts outer whitespace and spaces or tabs around range separators
+(hyphen, en dash, or em dash). Dates support year-first numeric formats
+(`YYYY.M.D`, `YYYY-M-D`, `YYYY/M/D`), day-first numeric formats (`D.M.YYYY`,
+`D/M/YYYY`), and month names (`D Mon YYYY`, `D Month YYYY`) from the system locale and
+Obsidian Moment locale. Generate full/short and standalone/date-context month
+names with Intl in UTC, retaining English aliases. Days and
+months may use one or two digits. Day-first dates may omit the year; each omitted
+year comes from the source note creation timestamp, supplied to the DOM-free
+parser by the code-block processor. Missing source metadata requires an explicit
+year rather than defaulting to the current year. It validates Gregorian dates,
 including leap years, and rejects ranges whose start is later than their end.
 Years are limited to `0001` through `9999`.
 

@@ -23,6 +23,36 @@ Use a hyphen between two dates for a range:
 ```
 ````
 
+### Supported date formats
+
+Dates accept one- or two-digit days and months:
+
+- Year first: `2026.03.02`, `2026-03-02`, `2026/3/2`.
+- Day first: `02.03.2026`, `2/3/2026` (always day/month/year).
+- Month names in the system locale and Obsidian language, case-insensitive:
+  full names, abbreviations (with or without a trailing period), and grammatical
+  forms used in dates, such as `1 марта`, `1 март`, or `1 мар.` in Russian.
+  English names (`2 Mar 2026`, `2 March 2026`) are always accepted.
+- Without a year: `2.3`, `02/03`, `2 Mar`.
+
+When a date omits its year, the plugin uses the source note's creation year
+(Obsidian's file creation timestamp), even when the other endpoint has an
+explicit year. It does not use the current year or the last modification year.
+If the source note is unavailable, specify the year explicitly.
+
+For example, in a note created in 2026:
+
+````markdown
+```date
+1 Mar - 4 Apr
+```
+````
+
+This selects March 1 through April 4, 2026. Formats can be mixed within a
+range; hyphens, en dashes and em dashes are accepted as separators. Invalid
+calendar dates and reversed ranges are rejected. For ranges crossing New Year,
+include explicit years, for example `31 Dec 2026 - 1 Jan 2027`.
+
 ## Examples
 
 ### Single date

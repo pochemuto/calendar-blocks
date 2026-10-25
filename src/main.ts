@@ -1,4 +1,4 @@
-import { moment, Plugin } from "obsidian";
+import { moment, Plugin, type MarkdownPostProcessorContext } from "obsidian";
 
 import {
 	renderCalendarSelection,
@@ -23,8 +23,17 @@ export default class CalendarBlocksPlugin extends Plugin {
 		await this.loadSettings();
 		console.log("[Calendar Blocks] loaded");
 
-		const processor = (source: string, element: HTMLElement): void => {
-			const result = parseDateInput(source);
+		const processor = (
+			source: string,
+			element: HTMLElement,
+			context: MarkdownPostProcessorContext,
+		): void => {
+			const file = this.app.vault.getFileByPath(context.sourcePath);
+			const creationYear = file
+				? new Date(file.stat.ctime).getFullYear()
+				: undefined;
+			const locale = moment.locale();
+			const result = parseDateInput(source, creationYear, locale);
 
 			if (!result.ok) {
 				element.createDiv({
@@ -34,7 +43,7 @@ export default class CalendarBlocksPlugin extends Plugin {
 				return;
 			}
 
-			renderCalendarSelection(element, result.value, moment.locale(), {
+			renderCalendarSelection(element, result.value, locale, {
 				stretchCalendar: this.settings.stretchCalendar,
 				theme: this.settings.theme,
 			});

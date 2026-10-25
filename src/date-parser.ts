@@ -17,6 +17,7 @@ export type DateSelection =
 
 export type DateParseErrorCode =
 	| "invalid-format"
+	| "missing-year"
 	| "invalid-year"
 	| "invalid-month"
 	| "invalid-day"
@@ -34,14 +35,100 @@ export type DateParseResult =
 	  };
 
 export const EXPECTED_DATE_FORMAT =
-	"YYYY.MM.DD or YYYY.MM.DD - YYYY.MM.DD";
+	"YYYY.MM.DD, YYYY-MM-DD, D.M[.YYYY], D/M[/YYYY] or D Mon [YYYY]; ranges use a hyphen";
 
-const DATE_INPUT_PATTERN =
-	/^(\d{4}\.\d{2}\.\d{2})(?:[ \t]*-[ \t]*(\d{4}\.\d{2}\.\d{2}))?$/;
+// English aliases remain available independently of the system/app locale.
+const MONTH_NAMES = [
+	["jan", "january"],
+	["feb", "february"],
+	["mar", "march"],
+	["apr", "april"],
+	["may"],
+	["jun", "june"],
+	["jul", "july"],
+	["aug", "august"],
+	["sep", "sept", "september"],
+	["oct", "october"],
+	["nov", "november"],
+	["dec", "december"],
+];
+interface DatePatterns {
+	atStart: RegExp;
+	complete: RegExp;
+	named: RegExp;
+	months: Map<string, number>;
+}
 
-export function parseDateInput(source: string): DateParseResult {
-	const match = DATE_INPUT_PATTERN.exec(source.trim());
+const localePatterns = new Map<string, DatePatterns>();
 
+function normalizeMonth(value: string): string {
+	return value.normalize("NFC").replace(/\.$/, "").toLowerCase();
+}
+
+function getDatePatterns(locale?: string): DatePatterns {
+	const systemLocale = new Intl.DateTimeFormat().resolvedOptions().locale;
+	let appLocale = systemLocale;
+	try {
+		appLocale = Intl.getCanonicalLocales(locale?.replace(/_/g, "-"))[0] ?? systemLocale;
+	} catch {
+		// Invalid or unsupported app locales still allow system and English names.
+	}
+	const key = `${systemLocale}:${appLocale}`;
+	const cached = localePatterns.get(key);
+	if (cached) return cached;
+
+	const months = new Map<string, number>();
+	const addMonth = (name: string, month: number): void => {
+		months.set(normalizeMonth(name), month);
+		// Include casing variants for names such as Turkish Mayıs / MAYIS.
+		months.set(normalizeMonth(name.toLocaleUpperCase(appLocale)), month);
+	};
+	MONTH_NAMES.forEach((names, index) => {
+		names.forEach((name) => addMonth(name, index + 1));
+	});
+	for (const language of new Set([systemLocale, appLocale])) {
+		for (const width of ["long", "short"] as const) {
+			for (const withDay of [false, true]) {
+				const formatter = new Intl.DateTimeFormat(language, {
+					calendar: "gregory",
+					numberingSystem: "latn",
+					timeZone: "UTC",
+					month: width,
+					...(withDay ? { day: "numeric" as const } : {}),
+				});
+				for (let month = 1; month <= 12; month++) {
+					const parts = formatter.formatToParts(new Date(Date.UTC(2000, month - 1, 1)));
+					const name = parts.find((part) => part.type === "month")?.value;
+					if (name) addMonth(name, month);
+				}
+			}
+		}
+	}
+	const names = [...months.keys()]
+		.sort((left, right) => right.length - left.length)
+		.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+	// The fallback keeps unknown names a validation error, never a guessed date.
+	const monthPattern = `(?:${names.join("|")}|[\\p{L}\\p{M}]+)\\.?`;
+	const namedPattern = String.raw`\d{1,2}[ \t]+${monthPattern}(?:[ \t]+\d{4})?`;
+	const datePattern = String.raw`(?:\d{4}([.\/-])\d{1,2}\1\d{1,2}|\d{1,2}([.\/])\d{1,2}(?:\2\d{4})?|${namedPattern})`;
+	const patterns = {
+		atStart: new RegExp(`^${datePattern}`, "iu"),
+		complete: new RegExp(`^${datePattern}$`, "iu"),
+		named: new RegExp(`^(\\d{1,2})[ \\t]+(${monthPattern})(?:[ \\t]+(\\d{4}))?$`, "iu"),
+		months,
+	};
+	localePatterns.set(key, patterns);
+	return patterns;
+}
+
+export function parseDateInput(
+	source: string,
+	defaultYear?: number,
+	locale?: string,
+): DateParseResult {
+	const patterns = getDatePatterns(locale);
+	const input = source.trim().normalize("NFC");
+	const match = patterns.atStart.exec(input);
 	if (match === null) {
 		return failure(
 			"invalid-format",
@@ -49,41 +136,36 @@ export function parseDateInput(source: string): DateParseResult {
 		);
 	}
 
-	const startResult = parseCalendarDate(match[1]);
+	const rest = input.slice(match[0].length);
+	const range = /^[ \t]*[-–—][ \t]*(.+)$/.exec(rest);
+	if (rest !== "" && (range === null || !patterns.complete.test(range[1]))) {
+		return failure(
+			"invalid-format",
+			"Input does not match a supported date format.",
+		);
+	}
+
+	const startResult = parseCalendarDate(match[0], patterns, defaultYear);
 	if (!startResult.ok) {
 		return startResult;
 	}
-
-	const endText = match[2];
-	if (endText === undefined) {
-		return {
-			ok: true,
-			value: {
-				kind: "single",
-				date: startResult.value,
-			},
-		};
+	if (range === null) {
+		return { ok: true, value: { kind: "single", date: startResult.value } };
 	}
 
-	const endResult = parseCalendarDate(endText);
+	const endResult = parseCalendarDate(range[1], patterns, defaultYear);
 	if (!endResult.ok) {
 		return endResult;
 	}
-
 	if (compareCalendarDates(startResult.value, endResult.value) > 0) {
 		return failure(
 			"reversed-range",
 			"The range start must not be later than the range end.",
 		);
 	}
-
 	return {
 		ok: true,
-		value: {
-			kind: "range",
-			start: startResult.value,
-			end: endResult.value,
-		},
+		value: { kind: "range", start: startResult.value, end: endResult.value },
 	};
 }
 
@@ -97,12 +179,41 @@ export function formatDateSelection(selection: DateSelection): string {
 
 function parseCalendarDate(
 	value: string,
+	patterns: DatePatterns,
+	defaultYear?: number,
 ): { ok: true; value: CalendarDate } | Exclude<DateParseResult, { ok: true }> {
-	const year = Number(value.slice(0, 4));
-	const month = Number(value.slice(5, 7));
-	const day = Number(value.slice(8, 10));
+	let year: number | undefined;
+	let month: number;
+	let day: number;
+	const yearFirst = /^(\d{4})[.\/-](\d{1,2})[.\/-](\d{1,2})$/.exec(value);
+	const dayFirst = /^(\d{1,2})[.\/](\d{1,2})(?:[.\/](\d{4}))?$/.exec(value);
+	const named = patterns.named.exec(value);
+	if (yearFirst) {
+		year = Number(yearFirst[1]);
+		month = Number(yearFirst[2]);
+		day = Number(yearFirst[3]);
+	} else if (dayFirst) {
+		year = dayFirst[3] === undefined ? defaultYear : Number(dayFirst[3]);
+		month = Number(dayFirst[2]);
+		day = Number(dayFirst[1]);
+	} else if (named) {
+		year = named[3] === undefined ? defaultYear : Number(named[3]);
+		month = patterns.months.get(normalizeMonth(named[2])) ?? 0;
+		day = Number(named[1]);
+	} else {
+		return failure(
+			"invalid-format",
+			"Input does not match a supported date format.",
+		);
+	}
 
-	if (year === 0) {
+	if (year === undefined) {
+		return failure(
+			"missing-year",
+			"Specify a year: the note's creation year is unavailable.",
+		);
+	}
+	if (!Number.isInteger(year) || year < 1 || year > 9999) {
 		return failure("invalid-year", "Year must be between 0001 and 9999.");
 	}
 
