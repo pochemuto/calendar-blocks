@@ -204,11 +204,15 @@ export function parseDateInput(
 	if (!endResult.ok) {
 		return endResult;
 	}
-	if (compareCalendarDates(startResult.value, endResult.value) > 0) {
+	const order = compareCalendarDates(startResult.value, endResult.value);
+	if (order > 0) {
 		return failure(
 			"reversed-range",
 			"The range start must not be later than the range end.",
 		);
+	}
+	if (order === 0) {
+		return { ok: true, value: { kind: "single", date: startResult.value, ...metadata } };
 	}
 	return {
 		ok: true,

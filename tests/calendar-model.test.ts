@@ -74,15 +74,13 @@ describe("createCalendarMonth", () => {
 		);
 	});
 
-	it("marks a one-day range as one boundary", () => {
-		const model = createCalendarMonth(2025, 7, {
-			kind: "range",
-			start: { year: 2025, month: 7, day: 27 },
-			end: { year: 2025, month: 7, day: 27 },
-		});
+	it("marks a parsed one-day range as a single selected date", () => {
+		const parsed = parseDateInput("2025.07.27 - 2025.07.27");
+		if (!parsed.ok) throw new Error(parsed.message);
+		const model = createCalendarMonth(2025, 7, parsed.value);
 
 		expect(model.days.find(({ date }) => date.day === 27)?.highlight).toBe(
-			"range-boundary",
+			"single",
 		);
 	});
 });

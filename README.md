@@ -40,7 +40,8 @@ All entries appear together. Ranges and single dates use two independent pools
 of the same 40-color palette, each starting with red, blue, and green in source
 order. The first single date and the first range are both red; adding a single
 date does not advance the range colors, and vice versa. A range with identical
-endpoints still uses the range pool. Each entry keeps its color
+endpoints collapses into a single date: it uses a circle, a color from the
+single-date pool, and a circle in the legend. Each entry keeps its color
 across weeks and months. Overlapping ranges retain their translucent layers,
 so their colors blend at intersections. Single dates appear as colored circles above all ranges,
 regardless of line order. Blank lines are ignored; an invalid entry reports its

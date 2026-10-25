@@ -176,15 +176,34 @@ describe("parseDateInput", () => {
 		});
 	});
 
-	it("allows a one-day range", () => {
-		expect(parseDateInput("2025.07.27 - 2025.07.27")).toMatchObject({
+	it.each([
+		"2025.07.27 - 2025.07.27",
+		"2025-7-27 – 27/7/2025",
+		"27 Jul 2025 — 27 July",
+		"27 Jul - 27 July 2025",
+		"27.7 - 27 Jul",
+	])("collapses equal endpoints into a single date: %s", (source) => {
+		expect(parseDateInput(source, 2025)).toEqual({
 			ok: true,
-			value: { kind: "range" },
+			value: { kind: "single", date: { year: 2025, month: 7, day: 27 } },
+		});
+	});
+	it.each(["1 Mar 2005 - 1 Mar", "1 Mar - 1 Mar 2005"])("collapses inferred equal endpoints after resolving explicit years: %s", (source) => {
+		expect(parseDateInput(source, 2026)).toEqual({
+			ok: true, value: { kind: "single", date: { year: 2005, month: 3, day: 1 } },
 		});
 	});
 });
 
 describe("formatDateSelection", () => {
+	it("preserves a collapsed range's label and formats it as a single date", () => {
+		const result = parseDateInput("Vacation: 27 Jul 2025 - 27 Jul");
+		expect(result).toEqual({
+			ok: true, value: { kind: "single", date: { year: 2025, month: 7, day: 27 }, label: "Vacation" },
+		});
+		if (!result.ok) throw new Error(result.message);
+		expect(formatDateSelection(result.value)).toBe("Vacation: 2025.07.27");
+	});
 	it("formats a parsed range canonically", () => {
 		const result = parseDateInput(" 2025.07.27-2025.08.03 ");
 		expect(result.ok).toBe(true);
@@ -294,7 +313,6 @@ describe("omitted range end year", () => {
 		["28/12/2005 — 1/1", 2026, "en", 2005, 12, 28, 2006, 1, 1],
 		["28 декабря 2005 – 1 января", undefined, "ru", 2005, 12, 28, 2006, 1, 1],
 		["28 Mar 2005 - 1 Mar", undefined, "en", 2005, 3, 28, 2006, 3, 1],
-		["1 Mar 2005 - 1 Mar", undefined, "en", 2005, 3, 1, 2005, 3, 1],
 		["28 Dec 2023 - 29 Feb", undefined, "en", 2023, 12, 28, 2024, 2, 29],
 	])("infers the end year in %s", (source, year, locale, sy, sm, sd, ey, em, ed) => {
 		expect(parseDateInput(source, year, locale)).toEqual({
@@ -322,7 +340,6 @@ describe("omitted range start year", () => {
 		["28 Dec - 1 Jan 2006", undefined, "en", 2005, 12, 28, 2006, 1, 1],
 		["28 Dec - 1 Jan 2006", 2026, "en", 2005, 12, 28, 2006, 1, 1],
 		["1 Mar - 9 Mar 2005", 2026, "en", 2005, 3, 1, 2005, 3, 9],
-		["1 Mar - 1 Mar 2005", undefined, "en", 2005, 3, 1, 2005, 3, 1],
 		["28.12 - 1.1.2006", undefined, "en", 2005, 12, 28, 2006, 1, 1],
 		["28/12 — 2006-01-01", undefined, "en", 2005, 12, 28, 2006, 1, 1],
 		["28 декабря – 1 января 2006", undefined, "ru", 2005, 12, 28, 2006, 1, 1],

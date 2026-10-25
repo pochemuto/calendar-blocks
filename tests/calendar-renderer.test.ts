@@ -450,7 +450,7 @@ describe("selection colors", () => {
 	});
 	it("adding entries of either kind leaves the other kind's colors unchanged", () => {
 		const singles = ["2026.07.10", "2026.06.10", "2026.06.11"];
-		const ranges = ["2026.06.08 - 2026.06.12", "2026.06.10 - 2026.06.10", "2026.07.01 - 2026.07.03"];
+		const ranges = ["2026.06.08 - 2026.06.12", "2026.06.10 - 2026.06.11", "2026.07.01 - 2026.07.03"];
 		const mixed = render(singles.flatMap((single, index) => [single, ranges[index]]).join("\n"));
 		function colors(container: HTMLElement, selector: string, property: string): string[] {
 			return Array.from(container.querySelectorAll<SVGElement>(selector), (shape) =>
@@ -463,6 +463,15 @@ describe("selection colors", () => {
 		] as const) {
 			expect(colors(mixed, selector, property)).toEqual(colors(render(lines.join("\n")), selector, property));
 		}
+	});
+	it("assigns collapsed ranges to the single-date pool without advancing range colors", () => {
+		const container = render("2026.06.05\n2026.06.10 - 2026.06.10\n2026.06.11 - 2026.06.12\n2026.06.15\n2026.06.16 - 2026.06.17");
+		expect(Array.from(container.querySelectorAll<SVGElement>(".calendar-blocks-selection-circle"),
+			(circle) => circle.style.getPropertyValue("--calendar-blocks-selection-color")))
+			.toEqual(SELECTION_COLORS.slice(0, 3));
+		expect(Array.from(container.querySelectorAll<SVGElement>(".calendar-blocks-range-segment"),
+			(segment) => segment.style.getPropertyValue("--calendar-blocks-range-color")))
+			.toEqual(SELECTION_COLORS.slice(0, 2));
 	});
 	it("keeps range colors across weeks and months, regardless of month order", () => {
 		const container = render("2026.10.01\n2026.06.25 - 2026.07.10\n2026.06.26 - 2026.06.28");
@@ -487,7 +496,7 @@ describe("selection colors", () => {
 	});
 	it.each(["single", "range"])("renders all 40 colors for %s entries without wrapping or dropping entries", (kind) => {
 		const source = Array.from({ length: 40 }, () =>
-			kind === "range" ? "2026.06.10 - 2026.06.10" : "2026.06.10",
+			kind === "range" ? "2026.06.10 - 2026.06.11" : "2026.06.10",
 		).join("\n");
 		const container = render(source);
 		const shapes = container.querySelectorAll<SVGElement>(".calendar-blocks-range-segment, .calendar-blocks-selection-circle");
@@ -566,10 +575,13 @@ describe("legend", () => {
 		rerenderCalendarRoot(container.querySelector<HTMLElement>(".calendar-blocks-root")!, { stretchCalendar: true });
 		checkLegend();
 	});
-	it("uses a pill marker even for a range with identical endpoints", () => {
+	it("renders equal range endpoints exactly like a labeled single date", () => {
 		const container = render("Vacation: 1 Mar - 1 Mar");
 		expect(container.querySelector(".calendar-blocks-legend-marker")?.classList)
-			.toContain("calendar-blocks-legend-marker--range");
+			.not.toContain("calendar-blocks-legend-marker--range");
+		expect(container.querySelectorAll(".calendar-blocks-selection-circle")).toHaveLength(1);
+		expect(container.querySelectorAll(".calendar-blocks-range-segment")).toHaveLength(0);
+		expect(container.isEqualNode(render("Vacation: 1 Mar"))).toBe(true);
 	});
 	it("renders label text literally and includes it in accessible SVG descriptions", () => {
 		const label = '<img src=x onerror=alert(1)> & Vacation';

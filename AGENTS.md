@@ -44,8 +44,10 @@ the source line. Range highlights remain independent translucent layers; single
 date circles are rendered above every range. Ranges and single dates use two
 independent pools of the 40-color palette in `src/selection-palette.ts`, each
 in source order, starting with red, blue, and green. Entries of one type must
-not advance the other type's colors. A range with identical endpoints uses the
-range pool.
+not advance the other type's colors. The parser collapses a range with identical
+resolved endpoints into a single date, preserving its label. It uses the
+single-date pool, circle highlight and circle legend marker, and canonical
+formatting emits one date.
 Preserve each entry's color across months and weeks. Reject blocks with more than
 40 entries in total (ranges and single dates) in the parser. Blank lines do not
 consume colors or count toward the limit. Show the sorted union of endpoint
