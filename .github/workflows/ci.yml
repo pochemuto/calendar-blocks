@@ -104,6 +104,19 @@ jobs:
       attestations: write
 
     steps:
+      - name: Check out release history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13
+
+      - name: Generate release notes from changelog diff
+        run: node scripts/generate-release-notes.mjs "$GITHUB_REF_NAME" "$RUNNER_TEMP/release-notes.md"
+
       - name: Download release assets
         uses: actions/download-artifact@v4
         with:
@@ -122,4 +135,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: gh release create "$GITHUB_REF_NAME" build/main.js build/manifest.json build/styles.css --generate-notes --verify-tag
+        run: gh release create "$GITHUB_REF_NAME" build/main.js build/manifest.json build/styles.css --notes-file "$RUNNER_TEMP/release-notes.md" --verify-tag

@@ -252,6 +252,12 @@ The minimum supported Obsidian version is 1.5.7, which introduced the
 Create a Git tag that exactly matches the manifest version, without a `v`
 prefix (for example, `0.1.1`). Pushing that tag runs CI and publishes a GitHub
 release with only `main.js`, `manifest.json`, and `styles.css` as attached assets.
+Append a concise, readable bullet to [CHANGELOG.md](CHANGELOG.md) when committing
+a change. Keep it as a flat list, with one entry per line and no version sections.
+CI generates the release description from added bullet lines in the changelog
+diff since the previous release tag, preserving file order and removing duplicates.
+The first release, or the first release with a changelog, includes all its entries.
+Both current tags (`0.1.1`) and legacy tags (`v0.1.0`) delimit the diff.
 
 Before publishing the release, CI generates GitHub build provenance attestations
 for the three individual plugin assets. The signing permissions are restricted

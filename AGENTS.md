@@ -214,6 +214,16 @@ Do not commit `build/` or `node_modules/`; both are intentionally ignored.
 Do not create Git commits unless the user explicitly requests one. When
 adding or updating dependencies, update and include `package-lock.json`.
 
+## Changelog maintenance
+
+When creating a commit, append concise, human-readable descriptions of its changes
+to `CHANGELOG.md` in the same commit. Keep the file as a flat Markdown bullet list:
+one entry per line, no dates or version sections, and no duplicate entries.
+Summarize the resulting behavior rather than copying technical commit subjects.
+Do not rewrite or reorder previously committed entries. CI builds release notes
+from bullet lines added since the previous release tag, with duplicates removed.
+If there is no previous changelog, CI uses every entry in the current one.
+
 ## Roadmap maintenance
 
 When implementing a feature listed in `ROADMAP.md`, mark every corresponding

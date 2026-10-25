@@ -1,0 +1,1 @@
+- Addressed Obsidian review feedback.
