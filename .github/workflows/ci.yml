@@ -6,7 +6,7 @@ on:
     branches:
       - "**"
     tags:
-      - "v?[0-9]+.[0-9]+.[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+"
 
 permissions:
   contents: read
@@ -60,17 +60,24 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         run: |
-          if [[ ! "$GITHUB_REF_NAME" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Release tags must have the form 1.2.3 or v1.2.3."
+          if [[ ! "$GITHUB_REF_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tags must have the form 1.2.3 (without a v prefix)."
             exit 1
           fi
 
-          tag_version="${GITHUB_REF_NAME#v}"
+          tag_version="$GITHUB_REF_NAME"
           package_version="$(node -p "require('./package.json').version")"
           manifest_version="$(node -p "require('./manifest.json').version")"
+          minimum_version="$(node -p "require('./manifest.json').minAppVersion")"
+          recorded_minimum="$(node -p "require('./versions.json')['$GITHUB_REF_NAME']")"
 
           if [[ "$tag_version" != "$package_version" || "$tag_version" != "$manifest_version" ]]; then
             echo "Tag version ($tag_version), package.json ($package_version), and manifest.json ($manifest_version) must match."
+            exit 1
+          fi
+
+          if [[ "$minimum_version" != "$recorded_minimum" ]]; then
+            echo "versions.json must record the manifest's minimum app version for this release."
             exit 1
           fi
 
@@ -78,12 +85,16 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: zip -j "calendar-blocks-${GITHUB_REF_NAME}.zip" build/main.js build/manifest.json build/styles.css
 
-      - name: Upload release archive
+      - name: Upload release assets
         if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v4
         with:
-          name: release-archive
-          path: calendar-blocks-${{ github.ref_name }}.zip
+          name: release-assets
+          path: |
+            calendar-blocks-${{ github.ref_name }}.zip
+            build/main.js
+            build/manifest.json
+            build/styles.css
           if-no-files-found: error
           retention-days: 1
 
@@ -96,13 +107,13 @@ jobs:
       contents: write
 
     steps:
-      - name: Download release archive
+      - name: Download release assets
         uses: actions/download-artifact@v4
         with:
-          name: release-archive
+          name: release-assets
 
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: gh release create "$GITHUB_REF_NAME" "calendar-blocks-${GITHUB_REF_NAME}.zip" --generate-notes --verify-tag
+        run: gh release create "$GITHUB_REF_NAME" "calendar-blocks-${GITHUB_REF_NAME}.zip" build/main.js build/manifest.json build/styles.css --generate-notes --verify-tag

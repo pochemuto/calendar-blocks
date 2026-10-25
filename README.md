@@ -202,7 +202,7 @@ compact layout.
 ## Build
 
 ```sh
-npm install
+npm ci
 npm run build
 ```
 
@@ -214,6 +214,29 @@ Copy the contents of `build/` to:
 
 Then reload Obsidian and enable **Calendar Blocks** in the community plugins
 settings.
+
+## Publishing
+
+Before publishing, run `npm test`, `npm run build`, and `git diff --check`.
+Keep the version in `manifest.json`, `package.json`, and `package-lock.json`
+in sync, and record its minimum Obsidian version in `versions.json`.
+The minimum supported Obsidian version is 1.5.7, which introduced the
+`Vault.getFileByPath` API used to resolve the source note.
+
+Create a Git tag that exactly matches the manifest version, without a `v`
+prefix (for example, `0.1.1`). Pushing that tag runs CI and publishes a GitHub
+release with `main.js`, `manifest.json`, and `styles.css` as individual assets,
+plus a ZIP archive for manual installation.
+
+The initial directory submission is made through
+[Obsidian Community](https://community.obsidian.md) after signing in and
+connecting the repository owner's GitHub account. Subsequent updates use
+GitHub releases. See the official
+[submission guide](https://docs.obsidian.md/Plugins/Releasing/Submit%20your%20plugin).
+
+## License
+
+[MIT](LICENSE).
 
 ## Visual regression tests
 

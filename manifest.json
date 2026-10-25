@@ -1,8 +1,8 @@
 {
 	"id": "calendar-blocks",
 	"name": "Calendar Blocks",
-	"version": "0.1.0",
-	"minAppVersion": "1.0.0",
+	"version": "0.1.1",
+	"minAppVersion": "1.5.7",
 	"description": "Renders date and date-range code blocks as calendars.",
 	"author": "pochemuto",
 	"isDesktopOnly": false
