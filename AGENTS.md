@@ -124,6 +124,12 @@ Run the complete automated test suite:
 npm test
 ```
 
+This includes pixel-exact visual regression tests in a pinned Playwright Docker
+image; Docker must be running. Reference screenshots are tracked under
+`tests/test-data/visual/linux/`. Use `npm run test:visual:update` only for
+intentional visual changes and review the resulting PNGs. See README.md for
+filtering, reports, and adding cases. `npm run test:unit` runs only Vitest.
+
 Create a production bundle:
 
 ```sh

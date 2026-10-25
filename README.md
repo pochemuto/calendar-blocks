@@ -210,3 +210,49 @@ Copy the contents of `build/` to:
 
 Then reload Obsidian and enable **Calendar Blocks** in the community plugins
 settings.
+
+## Visual regression tests
+
+`npm test` runs unit tests and 48 screenshot comparisons (24 cases in light and
+dark themes). Visual tests require a running Docker engine. The first run
+downloads the pinned Playwright image. Local runs and CI use the same Linux
+arm64 image, Chromium version, bundled Noto Sans font, locale, timezone and
+pixel density; no host fonts or Obsidian installation are needed.
+
+```sh
+npm ci
+npm test
+# Run just one suite:
+npm run test:unit
+npm run test:visual
+# Filter visual cases:
+npm run test:visual -- --grep omitted-months
+```
+
+Reference PNGs live in `tests/test-data/visual/linux/` and belong in Git.
+Every pixel must match: both the color threshold and allowed differing pixel
+count are zero. An additional decoded RGBA comparison includes antialiased
+pixels that Playwright's comparator can ignore. Missing references fail a normal test run. On failure,
+`test-results/` contains expected, actual and diff images, and
+`npm run test:visual:report` opens the HTML report. CI uploads these artifacts.
+
+After an intentional visual change, explicitly regenerate references:
+
+```sh
+npm run test:visual:update
+# Or update only the affected cases:
+npm run test:visual:update -- --grep legend
+```
+
+Review the changed PNGs before accepting them, then rerun `npm test`. Add cases
+to `tests/visual/cases.ts`; each case produces a named PNG for each theme.
+Keep the Docker image version in `tests/visual/run.mjs` aligned with the exact
+`@playwright/test` dependency. Browser or font upgrades may require reviewed
+reference updates.
+
+The harness uses the production parser, renderer and stylesheet with fixed
+Obsidian theme variables. It covers responsive container queries, highlight
+layers, legends, localization, month lengths, year boundaries, stretching and
+all 40 selection colors. These tests exercise the shared calendar rendering;
+Live Preview/Reading integration and third-party Obsidian themes still need
+manual checking in Obsidian.
