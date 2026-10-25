@@ -7,17 +7,11 @@ import {
 	type CalendarDate,
 	type DateSelection,
 	formatCalendarDate,
+	getDateEntries,
 } from "./date-parser";
+import { SELECTION_COLORS } from "./selection-palette";
 
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
-const BASIC_SVG_WIDTH = 700;
-const BASIC_GRID_LEFT = 20;
-const BASIC_GRID_TOP = 88;
-const BASIC_GRID_WIDTH = BASIC_SVG_WIDTH - BASIC_GRID_LEFT * 2;
-const BASIC_WEEKDAY_HEIGHT = 48;
-const BASIC_DAY_HEIGHT = 72;
-const BASIC_BOTTOM_PADDING = 20;
-
 const MINIMAL_SVG_WIDTH = 420;
 const MINIMAL_GRID_LEFT = 34;
 const MINIMAL_GRID_TOP = 76;
@@ -29,13 +23,8 @@ const MINIMAL_HIGHLIGHT_OFFSET_Y = -2;
 
 export const STRETCHED_CALENDAR_CLASS =
 	"calendar-blocks-root--stretched";
-export const CALENDAR_THEMES = ["basic", "minimal"] as const;
-
-export type CalendarTheme = (typeof CALENDAR_THEMES)[number];
-
 export interface CalendarRenderOptions {
 	stretchCalendar?: boolean;
-	theme?: CalendarTheme;
 }
 
 interface CalendarRenderState {
@@ -45,6 +34,7 @@ interface CalendarRenderState {
 }
 
 interface RangeSegmentGeometry {
+	color: string;
 	gridLeft: number;
 	gridTop: number;
 	weekdayHeight: number;
@@ -64,10 +54,9 @@ export function renderCalendarSelection(
 	const display = createCalendarDisplay(selection);
 	const root = document.createElement("div");
 	const calendars = document.createElement("div");
-	const theme = options.theme ?? "basic";
 
 	root.className = "calendar-blocks-root";
-	root.classList.add(`calendar-blocks-root--${theme}`);
+	root.classList.add("calendar-blocks-root--minimal");
 	root.classList.toggle(
 		STRETCHED_CALENDAR_CLASS,
 		options.stretchCalendar === true,
@@ -79,20 +68,27 @@ export function renderCalendarSelection(
 			: "calendar-blocks-calendars--dual",
 	);
 
-	if (display.hasOmittedMonths) {
+	if (display.hasOmittedMonths && display.months.length === 2) {
 		calendars.classList.add("calendar-blocks-calendars--omitted");
 	}
 
+	let row = calendars;
+	if (display.months.length > 2) {
+		calendars.className = "calendar-blocks-calendars calendar-blocks-calendars--multiple";
+	}
 	display.months.forEach((month, index) => {
-		if (index > 0 && display.hasOmittedMonths) {
-			const verticalWavePath =
-				theme === "minimal"
-					? "M 60 0 Q 0 30 60 60 T 60 120"
-					: "M 60 0 Q 0 7.5 60 15 T 60 30 T 60 45 T 60 60 T 60 75 T 60 90 T 60 105 T 60 120";
-			const horizontalWavePath =
-				theme === "minimal"
-					? "M 0 60 Q 30 0 60 60 T 120 60"
-					: "M 0 60 Q 7.5 0 15 60 T 30 60 T 45 60 T 60 60 T 75 60 T 90 60 T 105 60 T 120 60";
+		const previous = display.months[index - 1];
+		const omitted = previous !== undefined &&
+			(month.year - previous.year) * 12 + month.month - previous.month > 1;
+		if (display.months.length > 2 && index % 2 === 0) {
+			row = document.createElement("div");
+			const next = display.months[index + 1];
+			const pairOmitted = next !== undefined &&
+				(next.year - month.year) * 12 + next.month - month.month > 1;
+			row.className = `calendar-blocks-calendars calendar-blocks-calendars--${next ? "dual" : "single"}${pairOmitted ? " calendar-blocks-calendars--omitted" : ""}`;
+			calendars.append(row);
+		}
+		if (omitted) {
 			const separator = createSvgElement("svg", {
 				class: "calendar-blocks-separator",
 				viewBox: "0 0 120 120",
@@ -104,31 +100,56 @@ export function renderCalendarSelection(
 				createSvgElement("path", {
 					class:
 						"calendar-blocks-separator-wave calendar-blocks-separator-wave--vertical",
-					d: verticalWavePath,
+					d: "M 60 0 Q 0 30 60 60 T 60 120",
 				}),
 				createSvgElement("path", {
 					class:
 						"calendar-blocks-separator-wave calendar-blocks-separator-wave--horizontal",
-					d: horizontalWavePath,
+					d: "M 0 60 Q 30 0 60 60 T 120 60",
 				}),
 			);
-			calendars.append(separator);
+			if (display.months.length > 2 && index % 2 === 0) {
+				separator.classList.add("calendar-blocks-separator--between-rows");
+				calendars.insertBefore(separator, row);
+			} else {
+				row.append(separator);
+			}
 		}
 
-		calendars.append(
-			theme === "minimal"
-				? createMinimalCalendarSvg(month, selection, safeLocale)
-				: createBasicCalendarSvg(month, selection, safeLocale),
+		row.append(
+			createMinimalCalendarSvg(month, selection, safeLocale),
 		);
 	});
 
 	root.append(calendars);
+	const legend = createLegend(selection);
+	if (legend !== null) root.append(legend);
 	container.replaceChildren(root);
 	calendarRenderStates.set(root, {
 		container,
 		selection,
 		locale: safeLocale,
 	});
+}
+
+function createLegend(selection: DateSelection): HTMLUListElement | null {
+	const legend = document.createElement("ul");
+	legend.className = "calendar-blocks-legend";
+	getDateEntries(selection).forEach((entry, index) => {
+		if (!entry.label) return;
+		const item = document.createElement("li");
+		item.className = "calendar-blocks-legend-item";
+		const marker = document.createElement("span");
+		marker.className = "calendar-blocks-legend-marker";
+		marker.setAttribute("aria-hidden", "true");
+		marker.style.setProperty("--calendar-blocks-selection-color", SELECTION_COLORS[index]);
+		const label = document.createElement("span");
+		label.className = "calendar-blocks-legend-label";
+		label.textContent = entry.label;
+		item.append(marker, label);
+		legend.append(item);
+	});
+	return legend.childElementCount > 0 ? legend : null;
 }
 
 export function rerenderCalendarRoot(
@@ -148,104 +169,6 @@ export function rerenderCalendarRoot(
 		options,
 	);
 	return true;
-}
-
-function createBasicCalendarSvg(
-	month: CalendarMonthModel,
-	selection: DateSelection,
-	locale: string,
-): SVGSVGElement {
-	const height =
-		BASIC_GRID_TOP +
-		BASIC_WEEKDAY_HEIGHT +
-		month.weekCount * BASIC_DAY_HEIGHT +
-		BASIC_BOTTOM_PADDING;
-	const monthTitle = formatMonthTitle(month.year, month.month, locale);
-	const accessibleLabel = formatAccessibleLabel(
-		monthTitle,
-		selection,
-		locale,
-	);
-	const cellWidth = BASIC_GRID_WIDTH / 7;
-	const svg = createSvgElement("svg", {
-		class: "calendar-blocks-calendar calendar-blocks-calendar--basic",
-		viewBox: `0 0 ${BASIC_SVG_WIDTH} ${height}`,
-		preserveAspectRatio: "xMidYMid meet",
-		role: "img",
-		"aria-label": accessibleLabel,
-		focusable: "false",
-	});
-
-	const title = createSvgElement("title");
-	title.textContent = accessibleLabel;
-	svg.append(title);
-
-	svg.append(
-		createSvgElement("rect", {
-			class: "calendar-blocks-background",
-			x: 0,
-			y: 0,
-			width: BASIC_SVG_WIDTH,
-			height,
-			rx: 20,
-		}),
-	);
-
-	const heading = createSvgElement("text", {
-		class: "calendar-blocks-month-title",
-		x: BASIC_SVG_WIDTH / 2,
-		y: 50,
-		"text-anchor": "middle",
-	});
-	heading.textContent = capitalize(monthTitle, locale);
-	svg.append(heading);
-
-	const weekdayLabels = getWeekdayLabels(locale);
-	weekdayLabels.forEach((label, weekday) => {
-		const text = createSvgElement("text", {
-			class:
-				weekday >= 5
-					? "calendar-blocks-weekday calendar-blocks-weekend"
-					: "calendar-blocks-weekday",
-			x: BASIC_GRID_LEFT + (weekday + 0.5) * cellWidth,
-			y: BASIC_GRID_TOP + BASIC_WEEKDAY_HEIGHT / 2,
-			"text-anchor": "middle",
-			"dominant-baseline": "middle",
-		});
-		text.textContent = capitalize(label, locale);
-		svg.append(text);
-	});
-
-	appendBasicGrid(svg, month.weekCount, cellWidth);
-	appendBasicHighlights(svg, month.days, cellWidth);
-
-	month.days.forEach((day) => {
-		const classes = ["calendar-blocks-day"];
-
-		if (day.isWeekend) {
-			classes.push("calendar-blocks-weekend");
-		}
-
-		if (day.isOutsideMonth) {
-			classes.push("calendar-blocks-outside-month");
-		}
-
-		const text = createSvgElement("text", {
-			class: classes.join(" "),
-			x: BASIC_GRID_LEFT + (day.weekday + 0.5) * cellWidth,
-			y:
-				BASIC_GRID_TOP +
-				BASIC_WEEKDAY_HEIGHT +
-				(day.week + 0.5) * BASIC_DAY_HEIGHT,
-			"text-anchor": "middle",
-			"dominant-baseline": "middle",
-			"data-date": formatCalendarDate(day.date),
-		});
-		text.textContent = String(day.date.day);
-		svg.append(text);
-	});
-
-	return svg;
 }
 
 function createMinimalCalendarSvg(
@@ -327,7 +250,7 @@ function createMinimalCalendarSvg(
 		svg.append(text);
 	});
 
-	appendMinimalHighlights(svg, visibleDays, cellWidth);
+	appendMinimalHighlights(svg, visibleDays, cellWidth, selection);
 
 	visibleDays.forEach((day) => {
 		const classes = [
@@ -341,6 +264,8 @@ function createMinimalCalendarSvg(
 
 		if (day.highlight === "single") {
 			classes.push("calendar-blocks-minimal-selected-day");
+		} else if (day.highlight !== "none") {
+			classes.push("calendar-blocks-range-day");
 		}
 
 		const text = createSvgElement("text", {
@@ -361,61 +286,45 @@ function createMinimalCalendarSvg(
 	return svg;
 }
 
-function appendBasicHighlights(
-	svg: SVGSVGElement,
-	days: CalendarDayModel[],
-	cellWidth: number,
-): void {
-	const singleDay = days.find(({ highlight }) => highlight === "single");
-
-	if (singleDay !== undefined) {
-		appendBasicSingleHighlight(svg, singleDay, cellWidth);
-		return;
-	}
-
-	appendRangeHighlights(svg, days, cellWidth, {
-		gridLeft: BASIC_GRID_LEFT,
-		gridTop: BASIC_GRID_TOP,
-		weekdayHeight: BASIC_WEEKDAY_HEIGHT,
-		dayHeight: BASIC_DAY_HEIGHT,
-	});
-}
-
 function appendMinimalHighlights(
 	svg: SVGSVGElement,
 	days: CalendarDayModel[],
 	cellWidth: number,
+	selection: DateSelection,
 ): void {
-	const singleDay = days.find(({ highlight }) => highlight === "single");
-
-	if (singleDay !== undefined) {
-		const centerX =
-			MINIMAL_GRID_LEFT + (singleDay.weekday + 0.5) * cellWidth;
-		const centerY =
-			MINIMAL_GRID_TOP +
-			MINIMAL_WEEKDAY_HEIGHT +
-			(singleDay.week + 0.5) * MINIMAL_DAY_HEIGHT +
-			MINIMAL_HIGHLIGHT_OFFSET_Y;
-
-		svg.append(
-			createSvgElement("circle", {
-				class: "calendar-blocks-selection-circle",
-				cx: centerX,
-				cy: centerY,
-				r: 21,
-				"data-date": formatCalendarDate(singleDay.date),
-				"data-highlight": singleDay.highlight,
-			}),
-		);
-		return;
-	}
-
-	appendRangeHighlights(svg, days, cellWidth, {
-		gridLeft: MINIMAL_GRID_LEFT,
-		gridTop: MINIMAL_GRID_TOP,
-		weekdayHeight: MINIMAL_WEEKDAY_HEIGHT,
-		dayHeight: MINIMAL_DAY_HEIGHT,
-		highlightOffsetY: MINIMAL_HIGHLIGHT_OFFSET_Y,
+	// Paint each range separately so translucent fills accumulate at intersections.
+	// Use the whole block's entry index, including entries outside this month.
+	getDateEntries(selection).forEach((entry, index) => {
+		if (entry.kind !== "range") return;
+		const color = SELECTION_COLORS[index];
+		const layerDays = days.map((day) => ({
+			...day,
+			highlight: day.highlights[index],
+		}));
+		appendRangeHighlights(svg, layerDays, cellWidth, {
+			color,
+			gridLeft: MINIMAL_GRID_LEFT,
+			gridTop: MINIMAL_GRID_TOP,
+			weekdayHeight: MINIMAL_WEEKDAY_HEIGHT,
+			dayHeight: MINIMAL_DAY_HEIGHT,
+			highlightOffsetY: MINIMAL_HIGHLIGHT_OFFSET_Y,
+		});
+	});
+	// Single dates always cover ranges, independent of their source-line order.
+	getDateEntries(selection).forEach((entry, index) => {
+		if (entry.kind !== "single") return;
+		const day = days.find((day) => day.highlights[index] === "single");
+		if (day === undefined) return;
+		svg.append(createSvgElement("circle", {
+			class: "calendar-blocks-selection-circle",
+			style: `--calendar-blocks-selection-color: ${SELECTION_COLORS[index]}`,
+			cx: MINIMAL_GRID_LEFT + (day.weekday + 0.5) * cellWidth,
+			cy: MINIMAL_GRID_TOP + MINIMAL_WEEKDAY_HEIGHT +
+				(day.week + 0.5) * MINIMAL_DAY_HEIGHT + MINIMAL_HIGHLIGHT_OFFSET_Y,
+			r: 21,
+			"data-date": formatCalendarDate(day.date),
+			"data-highlight": "single",
+		}));
 	});
 }
 
@@ -428,7 +337,7 @@ function appendRangeHighlights(
 	const rangeDaysByWeek = new Map<number, CalendarDayModel[]>();
 
 	for (const day of days) {
-		if (day.highlight === "none") {
+		if (day.highlight === "none" || day.highlight === "single") {
 			continue;
 		}
 
@@ -466,32 +375,6 @@ function appendRangeHighlights(
 			runStart = index;
 		}
 	}
-}
-
-function appendBasicSingleHighlight(
-	svg: SVGSVGElement,
-	day: CalendarDayModel,
-	cellWidth: number,
-): void {
-	const x = BASIC_GRID_LEFT + day.weekday * cellWidth + 7;
-	const y =
-		BASIC_GRID_TOP +
-		BASIC_WEEKDAY_HEIGHT +
-		day.week * BASIC_DAY_HEIGHT +
-		7;
-
-	svg.append(
-		createSvgElement("rect", {
-			class: "calendar-blocks-selection-outline",
-			x,
-			y,
-			width: cellWidth - 14,
-			height: BASIC_DAY_HEIGHT - 14,
-			rx: 18,
-			"data-date": formatCalendarDate(day.date),
-			"data-highlight": day.highlight,
-		}),
-	);
 }
 
 function appendRangeSegment(
@@ -539,11 +422,8 @@ function appendRangeSegment(
 
 	svg.append(
 		createSvgElement("path", {
-			class: "calendar-blocks-range-segment-background",
-			d: path,
-		}),
-		createSvgElement("path", {
 			class: segmentClasses.join(" "),
+			style: `--calendar-blocks-range-color: ${geometry.color}`,
 			d: path,
 			"data-start-date": formatCalendarDate(firstDay.date),
 			"data-end-date": formatCalendarDate(lastDay.date),
@@ -596,62 +476,6 @@ function createRangeSegmentPath(
 	return commands.join(" ");
 }
 
-function appendBasicGrid(
-	svg: SVGSVGElement,
-	weekCount: number,
-	cellWidth: number,
-): void {
-	const gridBottom =
-		BASIC_GRID_TOP +
-		BASIC_WEEKDAY_HEIGHT +
-		weekCount * BASIC_DAY_HEIGHT;
-
-	for (let column = 0; column <= 7; column += 1) {
-		svg.append(
-			createSvgElement("line", {
-				class: "calendar-blocks-grid-line",
-				x1: BASIC_GRID_LEFT + column * cellWidth,
-				y1: BASIC_GRID_TOP,
-				x2: BASIC_GRID_LEFT + column * cellWidth,
-				y2: gridBottom,
-			}),
-		);
-	}
-
-	svg.append(
-		createSvgElement("line", {
-			class: "calendar-blocks-grid-line",
-			x1: BASIC_GRID_LEFT,
-			y1: BASIC_GRID_TOP,
-			x2: BASIC_GRID_LEFT + BASIC_GRID_WIDTH,
-			y2: BASIC_GRID_TOP,
-		}),
-		createSvgElement("line", {
-			class: "calendar-blocks-grid-line",
-			x1: BASIC_GRID_LEFT,
-			y1: BASIC_GRID_TOP + BASIC_WEEKDAY_HEIGHT,
-			x2: BASIC_GRID_LEFT + BASIC_GRID_WIDTH,
-			y2: BASIC_GRID_TOP + BASIC_WEEKDAY_HEIGHT,
-		}),
-	);
-
-	for (let week = 1; week <= weekCount; week += 1) {
-		const y =
-			BASIC_GRID_TOP +
-			BASIC_WEEKDAY_HEIGHT +
-			week * BASIC_DAY_HEIGHT;
-		svg.append(
-			createSvgElement("line", {
-				class: "calendar-blocks-grid-line",
-				x1: BASIC_GRID_LEFT,
-				y1: y,
-				x2: BASIC_GRID_LEFT + BASIC_GRID_WIDTH,
-				y2: y,
-			}),
-		);
-	}
-}
-
 function formatMonthTitle(
 	year: number,
 	month: number,
@@ -689,11 +513,14 @@ function formatAccessibleLabel(
 		timeZone: "UTC",
 	});
 
-	if (selection.kind === "single") {
-		return `${monthTitle}: ${dateFormatter.format(toUtcDate(selection.date))}`;
-	}
-
-	return `${monthTitle}: ${dateFormatter.format(toUtcDate(selection.start))} – ${dateFormatter.format(toUtcDate(selection.end))}`;
+	const labels = getDateEntries(selection).map((entry) => {
+		const prefix = entry.label ? `${entry.label}: ` : "";
+		if (entry.kind === "single") {
+			return `${prefix}${dateFormatter.format(toUtcDate(entry.date))}`;
+		}
+		return `${prefix}${dateFormatter.format(toUtcDate(entry.start))} – ${dateFormatter.format(toUtcDate(entry.end))}`;
+	});
+	return `${monthTitle}: ${labels.join("; ")}`;
 }
 
 function getWeekdayLabels(

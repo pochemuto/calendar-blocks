@@ -1,6 +1,8 @@
 import {
 	type CalendarDate,
 	type DateSelection,
+	type DateEntry,
+	getDateEntries,
 	compareCalendarDates,
 	daysInMonth,
 } from "./date-parser";
@@ -20,6 +22,7 @@ export interface CalendarDayModel {
 	isWeekend: boolean;
 	isOutsideMonth: boolean;
 	highlight: DayHighlight;
+	highlights: DayHighlight[];
 }
 
 export interface CalendarMonthModel {
@@ -42,14 +45,17 @@ interface CalendarMonthOptions {
 export function createCalendarDisplay(
 	selection: DateSelection,
 ): CalendarDisplayModel {
-	const monthKeys =
-		selection.kind === "single"
-			? [toMonthKey(selection.date)]
-			: getRangeMonthKeys(selection.start, selection.end);
-
-	const hasOmittedMonths =
-		selection.kind === "range" &&
-		monthDistance(selection.start, selection.end) > 1;
+	const entries = getDateEntries(selection);
+	const keys = entries.flatMap((entry) =>
+		entry.kind === "single"
+			? [toMonthKey(entry.date)]
+			: getRangeMonthKeys(entry.start, entry.end),
+	);
+	const monthKeys = [...new Map(keys.map((key) => [key.year * 12 + key.month, key])).values()]
+		.sort((a, b) => monthDistance(b, a));
+	const hasOmittedMonths = monthKeys.some((month, index) =>
+		index > 0 && monthDistance(monthKeys[index - 1], month) > 1,
+	);
 
 	return {
 		months: monthKeys.map(({ year, month }, index) =>
@@ -127,6 +133,7 @@ function createDayModel(
 	isOutsideMonth: boolean,
 ): CalendarDayModel {
 	const weekday = position % 7;
+	const highlights = getDateEntries(selection).map((entry) => getHighlight(date, entry));
 
 	return {
 		date,
@@ -134,7 +141,10 @@ function createDayModel(
 		weekday,
 		isWeekend: weekday >= 5,
 		isOutsideMonth,
-		highlight: getHighlight(date, selection),
+		highlight: highlights.includes("single")
+			? "single"
+			: highlights.find((value) => value !== "none") ?? "none",
+		highlights,
 	};
 }
 
@@ -153,7 +163,7 @@ function getRangeMonthKeys(
 
 function getHighlight(
 	date: CalendarDate,
-	selection: DateSelection,
+	selection: DateEntry,
 ): DayHighlight {
 	if (selection.kind === "single") {
 		return compareCalendarDates(date, selection.date) === 0 ? "single" : "none";
@@ -189,7 +199,7 @@ function getMondayFirstWeekday(year: number, month: number): number {
 	return (firstDay.getUTCDay() + 6) % 7;
 }
 
-function monthDistance(start: CalendarDate, end: CalendarDate): number {
+function monthDistance(start: Pick<CalendarDate, "year" | "month">, end: Pick<CalendarDate, "year" | "month">): number {
 	return (end.year - start.year) * 12 + end.month - start.month;
 }
 

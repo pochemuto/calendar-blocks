@@ -10,6 +10,9 @@ import {
 	STRETCHED_CALENDAR_CLASS,
 } from "../src/calendar-renderer";
 
+import { parseDateInput } from "../src/date-parser";
+import { SELECTION_COLORS } from "../src/selection-palette";
+
 describe("renderCalendarSelection", () => {
 	it("renders an accessible SVG calendar for a single date", () => {
 		const container = document.createElement("div");
@@ -29,16 +32,16 @@ describe("renderCalendarSelection", () => {
 		expect(svg?.querySelector("title")?.textContent).toContain("July 2025");
 		expect(
 			svg?.querySelector(".calendar-blocks-month-title")?.textContent,
-		).toBe("July 2025");
+		).toBe("JULY");
 		expect(
 			svg?.querySelector(
-				'.calendar-blocks-selection-outline[data-date="2025.07.27"]',
+				'.calendar-blocks-selection-circle[data-date="2025.07.27"]',
 			),
 		).not.toBeNull();
 		expect(
-			container.querySelector(".calendar-blocks-root--basic"),
+			container.querySelector(".calendar-blocks-root--minimal"),
 		).not.toBeNull();
-		expect(svg?.querySelector(".calendar-blocks-grid-line")).not.toBeNull();
+		expect(svg?.querySelector(".calendar-blocks-grid-line")).toBeNull();
 	});
 
 	it("renders the minimal design without a grid and selects a date with a circle", () => {
@@ -50,7 +53,6 @@ describe("renderCalendarSelection", () => {
 				date: { year: 2025, month: 7, day: 27 },
 			},
 			"ru",
-			{ theme: "minimal" },
 		);
 
 		const svg = container.querySelector(
@@ -101,7 +103,6 @@ describe("renderCalendarSelection", () => {
 				end: { year: 2025, month: 7, day: 23 },
 			},
 			"en-US",
-			{ theme: "minimal" },
 		);
 
 		const segment = container.querySelector<SVGPathElement>(
@@ -119,7 +120,7 @@ describe("renderCalendarSelection", () => {
 		);
 	});
 
-	it("rerenders an existing calendar when its design changes", () => {
+	it("rerenders an existing calendar when stretching changes", () => {
 		const container = document.createElement("div");
 		renderCalendarSelection(
 			container,
@@ -137,11 +138,11 @@ describe("renderCalendarSelection", () => {
 		expect(
 			root === null
 				? false
-				: rerenderCalendarRoot(root, { theme: "minimal" }),
+				: rerenderCalendarRoot(root, { stretchCalendar: true }),
 		).toBe(true);
 		expect(
-			container.querySelector(".calendar-blocks-calendar--basic"),
-		).toBeNull();
+			container.querySelector(".calendar-blocks-root")?.classList,
+		).toContain(STRETCHED_CALENDAR_CLASS);
 		expect(
 			container.querySelector(".calendar-blocks-calendar--minimal"),
 		).not.toBeNull();
@@ -205,13 +206,13 @@ describe("renderCalendarSelection", () => {
 
 		expect(
 			container.querySelector(".calendar-blocks-month-title")?.textContent,
-		).toMatch(/^Июль 2025/);
+		).toBe("ИЮЛЬ");
 		expect(
 			Array.from(
 				container.querySelectorAll(".calendar-blocks-weekday"),
 				(element) => element.textContent,
 			),
-		).toEqual(["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]);
+		).toEqual(["П", "В", "С", "Ч", "П", "С", "В"]);
 	});
 
 	it("merges adjacent range dates within one week", () => {
@@ -267,8 +268,8 @@ describe("renderCalendarSelection", () => {
 			["2025.07.25", "2025.07.27", "rounded", "open"],
 			["2025.07.28", "2025.07.29", "open", "rounded"],
 		]);
-		expect(segmentElements[0]?.getAttribute("d")).toContain("H 680");
-		expect(segmentElements[1]?.getAttribute("d")).toMatch(/^M 20 /);
+		expect(segmentElements[0]?.getAttribute("d")).toContain("H 386");
+		expect(segmentElements[1]?.getAttribute("d")).toMatch(/^M 34 /);
 	});
 
 	it("leaves both edges open for a complete intermediate week", () => {
@@ -290,54 +291,6 @@ describe("renderCalendarSelection", () => {
 		).not.toBeNull();
 	});
 
-	it("renders dim adjacent-month dates and continues the range into them", () => {
-		const container = document.createElement("div");
-		renderCalendarSelection(
-			container,
-			{
-				kind: "range",
-				start: { year: 2025, month: 7, day: 30 },
-				end: { year: 2025, month: 8, day: 3 },
-			},
-			"en-US",
-		);
-
-		const calendars = container.querySelectorAll<SVGSVGElement>(
-			"svg.calendar-blocks-calendar",
-		);
-		expect(calendars).toHaveLength(2);
-		expect(
-			calendars[0]?.querySelector(
-				'.calendar-blocks-outside-month[data-date="2025.08.01"]',
-			),
-		).not.toBeNull();
-		expect(
-			calendars[1]?.querySelector(
-				'.calendar-blocks-outside-month[data-date="2025.07.31"]',
-			),
-		).not.toBeNull();
-		expect(
-			calendars[0]?.querySelector(
-				'.calendar-blocks-range-segment:not(.calendar-blocks-range-segment--outside)[data-start-date="2025.07.30"][data-end-date="2025.07.31"][data-end-edge="open"]',
-			),
-		).not.toBeNull();
-		expect(
-			calendars[0]?.querySelector(
-				'.calendar-blocks-range-segment--outside[data-start-date="2025.08.01"][data-end-date="2025.08.03"][data-start-edge="open"]',
-			),
-		).not.toBeNull();
-		expect(
-			calendars[1]?.querySelector(
-				'.calendar-blocks-range-segment--outside[data-start-date="2025.07.30"][data-end-date="2025.07.31"][data-end-edge="open"]',
-			),
-		).not.toBeNull();
-		expect(
-			calendars[1]?.querySelector(
-				'.calendar-blocks-range-segment:not(.calendar-blocks-range-segment--outside)[data-start-date="2025.08.01"][data-end-date="2025.08.03"][data-start-edge="open"]',
-			),
-		).not.toBeNull();
-	});
-
 	it("omits adjacent-month dates and highlights from the minimal design", () => {
 		const container = document.createElement("div");
 		renderCalendarSelection(
@@ -348,7 +301,6 @@ describe("renderCalendarSelection", () => {
 				end: { year: 2025, month: 8, day: 3 },
 			},
 			"en-US",
-			{ theme: "minimal" },
 		);
 
 		const calendars = container.querySelectorAll<SVGSVGElement>(
@@ -425,7 +377,6 @@ describe("renderCalendarSelection", () => {
 				end: { year: 2025, month: 10, day: 2 },
 			},
 			"en-US",
-			{ theme: "minimal" },
 		);
 
 		expect(
@@ -438,5 +389,172 @@ describe("renderCalendarSelection", () => {
 				.querySelector(".calendar-blocks-separator-wave--horizontal")
 				?.getAttribute("d"),
 		).toBe("M 0 60 Q 30 0 60 60 T 120 60");
+	});
+});
+
+describe("multiple selections", () => {
+	function render(source: string) {
+		const parsed = parseDateInput(source);
+		if (!parsed.ok) throw new Error(parsed.message);
+		const container = document.createElement("div");
+		renderCalendarSelection(container, parsed.value, "en-US");
+		return container;
+	}
+	it.each([false, true])("layers each range independently below single dates (reverse: %s)", (reverse) => {
+		const lines = ["2025.07.22", "2025.07.21 - 2025.07.24", "2025.07.22 - 2025.07.23", "2025.07.25"];
+		const container = render((reverse ? lines.reverse() : lines).join("\n"));
+		const paths = container.querySelectorAll(".calendar-blocks-range-segment");
+		expect(paths).toHaveLength(2);
+		expect(container.querySelector(".calendar-blocks-range-segment-background")).toBeNull();
+		expect(container.querySelectorAll(".calendar-blocks-selection-circle")).toHaveLength(2);
+		const circle = container.querySelector('.calendar-blocks-selection-circle[data-date="2025.07.22"]')!;
+		for (const path of Array.from(paths)) expect(path.compareDocumentPosition(circle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		expect(container.querySelectorAll('.calendar-blocks-day[data-date="2025.07.22"]')).toHaveLength(1);
+		expect(container.querySelector('.calendar-blocks-minimal-selected-day[data-date="2025.07.22"]')).not.toBeNull();
+		expect(container.querySelector("svg")?.getAttribute("aria-label")).toContain("July 24, 2025");
+	});
+	it("adds chronological months and marks only actual omissions, including between rows", () => {
+		const container = render("2025.12.01\n2025.07.01 - 2025.07.03\n2025.08.01\n2025.10.01\n2026.01.01");
+		expect(Array.from(container.querySelectorAll(".calendar-blocks-month-title")).map((node) => node.textContent)).toEqual(["JULY", "AUGUST", "OCTOBER", "DECEMBER", "JANUARY"]);
+		expect(container.querySelectorAll(".calendar-blocks-separator")).toHaveLength(2);
+		expect(container.querySelectorAll(".calendar-blocks-separator--between-rows")).toHaveLength(1);
+		expect(container.querySelectorAll(".calendar-blocks-calendars--multiple > .calendar-blocks-calendars")).toHaveLength(3);
+		const root = container.querySelector<HTMLElement>(".calendar-blocks-root")!;
+		rerenderCalendarRoot(root, { stretchCalendar: true });
+		expect(container.querySelectorAll(".calendar-blocks-calendar")).toHaveLength(5);
+	});
+});
+
+
+describe("selection colors", () => {
+	function render(source: string) {
+		const parsed = parseDateInput(source);
+		if (!parsed.ok) throw new Error(parsed.message);
+		const container = document.createElement("div");
+		renderCalendarSelection(container, parsed.value, "en-US");
+		return container;
+	}
+	it("assigns red, blue and green to mixed entries in source order", () => {
+		const container = render("2026.06.10\n\n2026.06.05 - 2026.06.11\n2026.06.10");
+		const circles = container.querySelectorAll<SVGCircleElement>(".calendar-blocks-selection-circle");
+		const segments = container.querySelectorAll<SVGPathElement>(".calendar-blocks-range-segment");
+		expect(circles).toHaveLength(2);
+		expect(circles[0].style.getPropertyValue("--calendar-blocks-selection-color")).toBe(SELECTION_COLORS[0]);
+		expect(circles[1].style.getPropertyValue("--calendar-blocks-selection-color")).toBe("#16a34a");
+		for (const segment of Array.from(segments)) {
+			expect(segment.style.getPropertyValue("--calendar-blocks-range-color")).toBe("#2563eb");
+			for (const circle of Array.from(circles)) {
+				expect(segment.compareDocumentPosition(circle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+			}
+		}
+	});
+	it("keeps range colors across weeks and months, regardless of month order", () => {
+		const container = render("2026.10.01\n2026.06.25 - 2026.07.10\n2026.06.26 - 2026.06.28");
+		function expectColors() {
+			const calendars = container.querySelectorAll(".calendar-blocks-calendar");
+			expect(calendars).toHaveLength(3);
+			const june = calendars[0].querySelectorAll<SVGPathElement>(".calendar-blocks-range-segment");
+			expect(june).toHaveLength(3);
+			expect(Array.from(june, (path) => path.style.getPropertyValue("--calendar-blocks-range-color")))
+				.toEqual([SELECTION_COLORS[1], SELECTION_COLORS[1], SELECTION_COLORS[2]]);
+			const july = calendars[1].querySelectorAll<SVGPathElement>(".calendar-blocks-range-segment");
+			expect(july).toHaveLength(2);
+			for (const path of Array.from(july)) {
+				expect(path.style.getPropertyValue("--calendar-blocks-range-color")).toBe(SELECTION_COLORS[1]);
+			}
+			expect(calendars[2].querySelector<SVGCircleElement>("circle")?.style.getPropertyValue("--calendar-blocks-selection-color"))
+				.toBe(SELECTION_COLORS[0]);
+		}
+		expectColors();
+		rerenderCalendarRoot(container.querySelector<HTMLElement>(".calendar-blocks-root")!, { stretchCalendar: true });
+		expectColors();
+	});
+	it("renders all 40 palette colors without wrapping or dropping entries", () => {
+		const source = Array.from({ length: 40 }, (_, index) =>
+			index % 2 === 0 ? "2026.06.10 - 2026.06.10" : "2026.06.10",
+		).join("\n");
+		const container = render(source);
+		const shapes = container.querySelectorAll<SVGElement>(".calendar-blocks-range-segment, .calendar-blocks-selection-circle");
+		expect(shapes).toHaveLength(40);
+		const colors = Array.from(shapes, (shape) =>
+			shape.style.getPropertyValue("--calendar-blocks-range-color") || shape.style.getPropertyValue("--calendar-blocks-selection-color"),
+		);
+		expect(new Set(colors).size).toBe(40);
+		expect(colors).toEqual(expect.arrayContaining([...SELECTION_COLORS]));
+	});
+});
+
+describe("day label readability", () => {
+	it("keeps overlapping weekend dates above all highlights with normal text contrast", () => {
+		const result = parseDateInput("2026.03.25 - 2026.03.29\n2026.03.28 - 2026.04.04\n2026.04.01");
+		if (!result.ok) throw new Error(result.message);
+		const container = document.createElement("div");
+		renderCalendarSelection(container, result.value, "ru");
+
+		for (const svg of Array.from(container.querySelectorAll("svg.calendar-blocks-calendar"))) {
+			const highlights = svg.querySelectorAll(".calendar-blocks-range-segment, .calendar-blocks-selection-circle");
+			for (const label of Array.from(svg.querySelectorAll(".calendar-blocks-day"))) {
+				for (const highlight of Array.from(highlights)) {
+					expect(highlight.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+				}
+			}
+		}
+		for (const date of ["2026.03.28", "2026.03.29", "2026.04.04"]) {
+			const label = container.querySelector(`.calendar-blocks-day[data-date="${date}"]`);
+			expect(label?.classList).toContain("calendar-blocks-weekend");
+			expect(label?.classList).toContain("calendar-blocks-range-day");
+		}
+		const unselected = container.querySelector('.calendar-blocks-day[data-date="2026.03.21"]');
+		expect(unselected?.classList).toContain("calendar-blocks-weekend");
+		expect(unselected?.classList).not.toContain("calendar-blocks-range-day");
+		const single = container.querySelector('.calendar-blocks-day[data-date="2026.04.01"]');
+		expect(single?.classList).toContain("calendar-blocks-minimal-selected-day");
+		expect(single?.classList).not.toContain("calendar-blocks-range-day");
+	});
+});
+
+
+describe("legend", () => {
+	function render(source: string) {
+		const parsed = parseDateInput(source, 2026);
+		if (!parsed.ok) throw new Error(parsed.message);
+		const container = document.createElement("div");
+		renderCalendarSelection(container, parsed.value, "en-US");
+		return container;
+	}
+	it.each(["1 Mar - 9 Mar", "1 Mar\n2 Mar - 9 Mar"])("omits the legend for unlabeled entries: %s", (source) => {
+		expect(render(source).querySelector(".calendar-blocks-legend")).toBeNull();
+	});
+	it("places only labeled entries below every calendar, preserving source colors", () => {
+		const container = render("1 Jan\nVacation: 1 Mar - 9 Mar\n2 Apr\nBirthday: 10 May");
+		function checkLegend() {
+			const legend = container.querySelector(".calendar-blocks-legend")!;
+			expect(container.querySelectorAll(".calendar-blocks-legend")).toHaveLength(1);
+			expect(legend.previousElementSibling?.classList).toContain("calendar-blocks-calendars");
+			expect(Array.from(legend.querySelectorAll("li"), (item) => item.textContent)).toEqual(["Vacation", "Birthday"]);
+			const markers = legend.querySelectorAll<HTMLElement>(".calendar-blocks-legend-marker");
+			expect(Array.from(markers, (marker) => marker.style.getPropertyValue("--calendar-blocks-selection-color")))
+				.toEqual([SELECTION_COLORS[1], SELECTION_COLORS[3]]);
+			for (const marker of Array.from(markers)) {
+				expect(marker.getAttribute("aria-hidden")).toBe("true");
+				expect(marker.nextElementSibling?.classList).toContain("calendar-blocks-legend-label");
+			}
+			const range = container.querySelector<SVGPathElement>(".calendar-blocks-range-segment")!;
+			expect(range.style.getPropertyValue("--calendar-blocks-range-color")).toBe(SELECTION_COLORS[1]);
+			const birthday = container.querySelector<SVGCircleElement>('.calendar-blocks-selection-circle[data-date="2026.05.10"]')!;
+			expect(birthday.style.getPropertyValue("--calendar-blocks-selection-color")).toBe(SELECTION_COLORS[3]);
+		}
+		checkLegend();
+		rerenderCalendarRoot(container.querySelector<HTMLElement>(".calendar-blocks-root")!, { stretchCalendar: true });
+		checkLegend();
+	});
+	it("renders label text literally and includes it in accessible SVG descriptions", () => {
+		const label = '<img src=x onerror=alert(1)> & Vacation';
+		const container = render(`${label}: 1 Mar - 9 Mar`);
+		expect(container.querySelector(".calendar-blocks-legend-label")?.textContent).toBe(label);
+		expect(container.querySelector("img")).toBeNull();
+		const svg = container.querySelector("svg")!;
+		expect(svg.getAttribute("aria-label")).toContain(label);
+		expect(svg.querySelector("title")?.textContent).toContain(label);
 	});
 });

@@ -4,7 +4,7 @@ import {
 	createCalendarDisplay,
 	createCalendarMonth,
 } from "../src/calendar-model";
-import type { DateSelection } from "../src/date-parser";
+import { parseDateInput, type DateSelection } from "../src/date-parser";
 
 describe("createCalendarMonth", () => {
 	it.each([
@@ -155,5 +155,16 @@ describe("createCalendarDisplay", () => {
 		expect(
 			display.months[1]?.days.find(({ date }) => date.day === 1)?.highlight,
 		).toBe("range-middle");
+	});
+});
+
+it("unions and sorts endpoint months while retaining independent overlaps", () => {
+	const parsed = parseDateInput("2026.01.01\n2025.07.21 - 2025.10.10\n2025.08.01 - 2025.08.05\n2025.08.03");
+	if (!parsed.ok) throw new Error(parsed.message);
+	const display = createCalendarDisplay(parsed.value);
+	expect(display.months.map(({ year, month }) => [year, month])).toEqual([[2025, 7], [2025, 8], [2025, 10], [2026, 1]]);
+	expect(display.hasOmittedMonths).toBe(true);
+	expect(display.months[1].days.find(({ date, isOutsideMonth }) => !isOutsideMonth && date.day === 3)).toMatchObject({
+		highlight: "single", highlights: ["none", "range-middle", "range-middle", "single"],
 	});
 });

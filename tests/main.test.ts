@@ -5,6 +5,7 @@ type BlockProcessor = (source: string, el: HTMLElement, context: MarkdownPostPro
 
 const mocks = vi.hoisted(() => ({
 	getFileByPath: vi.fn(),
+	loadData: vi.fn(),
 	locale: vi.fn(() => "en"),
 	render: vi.fn(),
 	processors: new Map<string, BlockProcessor>(),
@@ -13,7 +14,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("obsidian", () => ({
 	Plugin: class {
 		app = { vault: { getFileByPath: mocks.getFileByPath } };
-		loadData = async () => null;
+		loadData = mocks.loadData;
 		addSettingTab = () => {};
 		registerMarkdownCodeBlockProcessor = (language: string, processor: BlockProcessor) => {
 			mocks.processors.set(language, processor);
@@ -22,8 +23,7 @@ vi.mock("obsidian", () => ({
 	moment: { locale: mocks.locale },
 }));
 vi.mock("../src/settings", () => ({
-	DEFAULT_SETTINGS: { stretchCalendar: false, theme: "minimal" },
-	isCalendarTheme: (value: unknown) => value === "minimal" || value === "basic",
+	DEFAULT_SETTINGS: { stretchCalendar: false },
 	CalendarBlocksSettingTab: class {},
 }));
 vi.mock("../src/calendar-renderer", () => ({
@@ -49,6 +49,21 @@ describe("date block processor", () => {
 		vi.clearAllMocks();
 		mocks.processors.clear();
 		mocks.locale.mockReturnValue("en");
+	});
+
+	it.each(["basic", "minimal"])("ignores the removed %s design setting", async (theme) => {
+		mocks.loadData.mockResolvedValueOnce({ theme, stretchCalendar: true });
+		const plugin = new CalendarBlocksPlugin({} as never, {} as never);
+		await plugin.onload();
+		expect(plugin.settings).toEqual({ stretchCalendar: true });
+		const element = { createDiv: vi.fn() } as unknown as HTMLElement;
+		mocks.processors.get("date")!("2025.07.27", element, context);
+		expect(mocks.render).toHaveBeenLastCalledWith(
+			element,
+			{ kind: "single", date: { year: 2025, month: 7, day: 27 } },
+			"en",
+			{ stretchCalendar: true },
+		);
 	});
 
 	it.each(["date", "dates"])("uses the source note creation year for %s blocks", async (language) => {
@@ -92,4 +107,49 @@ describe("date block processor", () => {
 			kind: "single", date: { year: 2026, month: 3, day: 2 },
 		}, "en", expect.anything());
 	});
+
+	it.each(["date", "dates"])("passes all entries and the note creation year for %s blocks", async (language) => {
+	mocks.getFileByPath.mockReturnValue({ stat: { ctime: new Date(2004, 5, 15).getTime() } });
+	await process("1 Mar - 4 Mar\n2 Mar", language);
+	expect(mocks.render).toHaveBeenCalledWith(expect.anything(), {
+		kind: "multiple", entries: [
+			{ kind: "range", start: { year: 2004, month: 3, day: 1 }, end: { year: 2004, month: 3, day: 4 } },
+			{ kind: "single", date: { year: 2004, month: 3, day: 2 } },
+		],
+	}, "en", expect.anything());
+});
+
+	it.each(["date", "dates"])("shows a compact error for more than 40 entries in %s", async (language) => {
+		mocks.getFileByPath.mockReturnValue(null);
+		const source = Array(40).fill("2026.06.05 - 2026.06.11").concat("2026.06.10").join("\n");
+		const createDiv = await process(source, language);
+		expect(mocks.render).not.toHaveBeenCalled();
+		expect(createDiv).toHaveBeenCalledWith(expect.objectContaining({
+			cls: "calendar-blocks-error",
+			text: expect.stringContaining("at most 40 ranges and single dates in total"),
+		}));
+	});
+
+	it.each(["date", "dates"])("infers a yearless range end without source metadata in %s", async (language) => {
+		mocks.getFileByPath.mockReturnValue(null);
+		const createDiv = await process("Vacation: 28 Dec 2005 - 1 Jan", language);
+		expect(createDiv).not.toHaveBeenCalled();
+		expect(mocks.render).toHaveBeenCalledWith(expect.anything(), {
+			kind: "range", label: "Vacation",
+			start: { year: 2005, month: 12, day: 28 },
+			end: { year: 2006, month: 1, day: 1 },
+		}, "en", expect.anything());
+	});
+
+	it.each(["date", "dates"])("infers a yearless range start without source metadata in %s", async (language) => {
+		mocks.getFileByPath.mockReturnValue(null);
+		const createDiv = await process("Vacation: 28 Dec - 1 Jan 2006", language);
+		expect(createDiv).not.toHaveBeenCalled();
+		expect(mocks.render).toHaveBeenCalledWith(expect.anything(), {
+			kind: "range", label: "Vacation",
+			start: { year: 2005, month: 12, day: 28 },
+			end: { year: 2006, month: 1, day: 1 },
+		}, "en", expect.anything());
+	});
+
 });

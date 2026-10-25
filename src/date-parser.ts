@@ -1,10 +1,18 @@
+import { MAX_DATE_ENTRIES } from "./selection-palette";
+
 export interface CalendarDate {
 	year: number;
 	month: number;
 	day: number;
 }
 
-export type DateSelection =
+export type DateSelection = DateEntry | { kind: "multiple"; entries: DateEntry[] };
+
+export function getDateEntries(selection: DateSelection): DateEntry[] {
+	return selection.kind === "multiple" ? selection.entries : [selection];
+}
+
+export type DateEntry = (
 	| {
 			kind: "single";
 			date: CalendarDate;
@@ -13,7 +21,8 @@ export type DateSelection =
 			kind: "range";
 			start: CalendarDate;
 			end: CalendarDate;
-	  };
+	  }
+) & { label?: string };
 
 export type DateParseErrorCode =
 	| "invalid-format"
@@ -21,7 +30,8 @@ export type DateParseErrorCode =
 	| "invalid-year"
 	| "invalid-month"
 	| "invalid-day"
-	| "reversed-range";
+	| "reversed-range"
+	| "too-many-entries";
 
 export type DateParseResult =
 	| {
@@ -35,7 +45,7 @@ export type DateParseResult =
 	  };
 
 export const EXPECTED_DATE_FORMAT =
-	"YYYY.MM.DD, YYYY-MM-DD, D.M[.YYYY], D/M[/YYYY] or D Mon [YYYY]; ranges use a hyphen";
+	"YYYY.MM.DD, YYYY-MM-DD, D.M[.YYYY], D/M[/YYYY] or D Mon [YYYY]; ranges use a hyphen; optional labels use Label: date or range";
 
 // English aliases remain available independently of the system/app locale.
 const MONTH_NAMES = [
@@ -126,8 +136,38 @@ export function parseDateInput(
 	defaultYear?: number,
 	locale?: string,
 ): DateParseResult {
+	const lines = source.trim().split(/\r?\n/);
+	if (lines.length > 1) {
+		const entries: DateEntry[] = [];
+		for (const [index, line] of lines.entries()) {
+			if (line.trim() === "") continue;
+			const result = parseDateInput(line, defaultYear, locale);
+			if (!result.ok) {
+				return { ...result, message: `Line ${index + 1}: ${result.message}` };
+			}
+			if (entries.length === MAX_DATE_ENTRIES) {
+				return failure(
+					"too-many-entries",
+					`Line ${index + 1}: A date block supports at most ${MAX_DATE_ENTRIES} ranges and single dates in total.`,
+				);
+			}
+			entries.push(...getDateEntries(result.value));
+		}
+		if (entries.length === 1) return { ok: true, value: entries[0] };
+		return { ok: true, value: { kind: "multiple", entries } };
+	}
 	const patterns = getDatePatterns(locale);
-	const input = source.trim().normalize("NFC");
+	let input = source.trim().normalize("NFC");
+	let label: string | undefined;
+	const colon = input.indexOf(":");
+	if (colon !== -1) {
+		label = input.slice(0, colon).trim();
+		input = input.slice(colon + 1).trim();
+		if (label.length === 0) {
+			return failure("invalid-format", "The label before the colon must not be empty.");
+		}
+	}
+	const metadata = label === undefined ? {} : { label };
 	const match = patterns.atStart.exec(input);
 	if (match === null) {
 		return failure(
@@ -145,15 +185,22 @@ export function parseDateInput(
 		);
 	}
 
-	const startResult = parseCalendarDate(match[0], patterns, defaultYear);
+	let startResult = parseCalendarDate(match[0], patterns);
+	if (!startResult.ok && startResult.code === "missing-year") {
+		const explicitEnd = range === null ? undefined : parseCalendarDate(range[1], patterns);
+		// An explicit end year takes precedence over the note's creation year.
+		startResult = explicitEnd?.ok
+			? parseCalendarDate(match[0], patterns, undefined, explicitEnd.value, "before")
+			: parseCalendarDate(match[0], patterns, defaultYear);
+	}
 	if (!startResult.ok) {
 		return startResult;
 	}
 	if (range === null) {
-		return { ok: true, value: { kind: "single", date: startResult.value } };
+		return { ok: true, value: { kind: "single", date: startResult.value, ...metadata } };
 	}
 
-	const endResult = parseCalendarDate(range[1], patterns, defaultYear);
+	const endResult = parseCalendarDate(range[1], patterns, undefined, startResult.value);
 	if (!endResult.ok) {
 		return endResult;
 	}
@@ -165,22 +212,27 @@ export function parseDateInput(
 	}
 	return {
 		ok: true,
-		value: { kind: "range", start: startResult.value, end: endResult.value },
+		value: { kind: "range", start: startResult.value, end: endResult.value, ...metadata },
 	};
 }
 
 export function formatDateSelection(selection: DateSelection): string {
+	if (selection.kind === "multiple") {
+		return selection.entries.map(formatDateSelection).join("\n");
+	}
 	if (selection.kind === "single") {
-		return formatCalendarDate(selection.date);
+		return `${selection.label ? `${selection.label}: ` : ""}${formatCalendarDate(selection.date)}`;
 	}
 
-	return `${formatCalendarDate(selection.start)} - ${formatCalendarDate(selection.end)}`;
+	return `${selection.label ? `${selection.label}: ` : ""}${formatCalendarDate(selection.start)} - ${formatCalendarDate(selection.end)}`;
 }
 
 function parseCalendarDate(
 	value: string,
 	patterns: DatePatterns,
 	defaultYear?: number,
+	referenceDate?: CalendarDate,
+	direction: "before" | "after" = "after",
 ): { ok: true; value: CalendarDate } | Exclude<DateParseResult, { ok: true }> {
 	let year: number | undefined;
 	let month: number;
@@ -207,6 +259,12 @@ function parseCalendarDate(
 		);
 	}
 
+	if (year === undefined && referenceDate !== undefined) {
+		const monthDayOrder = month - referenceDate.month || day - referenceDate.day;
+		year = referenceDate.year;
+		if (direction === "before" && monthDayOrder > 0) year -= 1;
+		if (direction === "after" && monthDayOrder < 0) year += 1;
+	}
 	if (year === undefined) {
 		return failure(
 			"missing-year",

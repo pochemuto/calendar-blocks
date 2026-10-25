@@ -18,5 +18,4 @@
 - [ ] Add plugin settings.
   - [x] Stretch calendars to the available note width.
   - [ ] Calendar width.
-  - [x] Selected calendar design.
 - [ ] Cache rendered calendars.

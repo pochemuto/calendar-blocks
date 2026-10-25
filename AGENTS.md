@@ -26,12 +26,35 @@ The parser accepts outer whitespace and spaces or tabs around range separators
 `D/M/YYYY`), and month names (`D Mon YYYY`, `D Month YYYY`) from the system locale and
 Obsidian Moment locale. Generate full/short and standalone/date-context month
 names with Intl in UTC, retaining English aliases. Days and
-months may use one or two digits. Day-first dates may omit the year; each omitted
-year comes from the source note creation timestamp, supplied to the DOM-free
-parser by the code-block processor. Missing source metadata requires an explicit
-year rather than defaulting to the current year. It validates Gregorian dates,
+months may use one or two digits. Day-first dates may omit the year. Single dates
+and ranges with both years omitted use the source note creation year, supplied
+to the DOM-free parser by the code-block processor, as the single/start year.
+A range end without a year uses the start's year, advancing one year if its
+month/day precedes the start. A range start without a year uses an explicit end's
+year, moving back one year if its month/day follows the end. Explicit endpoint
+years take precedence over creation metadata and are never adjusted. Missing
+source metadata requires an explicit year for a single date or either range
+endpoint rather than defaulting to the current year. It validates Gregorian dates,
 including leap years, and rejects ranges whose start is later than their end.
 Years are limited to `0001` through `9999`.
+
+Multiple ranges and single dates may be combined in one block, one entry per
+line. Blank lines are ignored. Invalid entries reject the whole block and report
+the source line. Range highlights remain independent translucent layers; single
+date circles are rendered above every range. Ranges and single dates use the 40-color palette in
+`src/selection-palette.ts` in source order, starting with red, blue, and green.
+Preserve each entry's color across months and weeks. Reject blocks with more than
+40 entries in total (ranges and single dates) in the parser. Blank lines do not
+consume colors or count toward the limit. Show the sorted union of endpoint
+months and single-date months, with waves only at actual month gaps. Additional
+months form responsive rows of at most two calendars.
+
+Each entry may have a plain-text label before a colon, for example
+`Vacation: 1 Mar - 9 Mar`. Preserve labels in canonical formatting and accessible
+SVG descriptions. If any entries have labels, render a legend below all calendars,
+with one labeled entry per line and a colored circle on the left. Use the entry's
+original palette index, including unlabeled entries; omit unlabeled legend items.
+Render label text with `textContent`, never HTML.
 
 ## Architecture
 
@@ -62,11 +85,9 @@ formatting, construct and read it in UTC to avoid timezone and DST shifts.
 
 - The Obsidian Moment locale determines month and weekday labels.
 - Weeks always start on Monday, independently of locale.
-- In the basic design, Saturday and Sunday labels and dates are red. In the
-  minimal design, they are muted to match the minimal reference.
-- In the basic design, a single selected date has a thin, theme-neutral
-  rounded outline and does not use an accent color. In the minimal design, it
-  uses a filled red circle with contrasting text.
+- Saturday and Sunday labels and unselected dates are muted. Dates inside ranges
+  use the normal text color, including weekends, to stay legible over highlights.
+- A single selected date uses a filled red circle with contrasting text.
 - Adjacent range dates within the same week merge into one rounded segment
   with a translucent fill and no outline. Multi-week ranges render one segment
   per week row. An edge that continues into another week is square and flush
@@ -74,20 +95,14 @@ formatting, construct and read it in UTC to avoid timezone and DST shifts.
 - A same-month range renders one calendar.
 - A multi-month range renders only the first and last months. A narrow
   vertical wave separates them when one or more complete months are omitted.
-- In the basic design, free cells at the boundary of each displayed month show
-  dimmed dates from the adjacent month. Range segments continue through those
-  overflow dates when they fall inside the selection. The overflow portion of
-  a segment uses a lower fill opacity while remaining visually joined to the
-  main-month portion. The minimal design omits adjacent-month dates and their
-  range highlights.
+- Adjacent-month dates and their range highlights are omitted.
 - Two calendars remain side by side while each retains a readable width. A
   container query switches them to a vertical stack before they become too
   compressed. The omitted-month separator changes from a vertical wave to a
   horizontal wave in the stacked layout.
 - The optional **Stretch calendar** setting removes the compact maximum width
   while preserving the responsive one- or two-column layout.
-- The **Calendar design** setting selects the `basic` renderer or the separate,
-  grid-free `minimal` renderer. Minimal is the default.
+- Calendars always use the grid-free Minimal design; there is no design setting.
 - Every SVG must retain its localized `title`, `role="img"`, and `aria-label`.
 - Invalid input must render a compact error instead of throwing.
 
@@ -170,7 +185,7 @@ changes, manually check:
 - light and dark Obsidian themes;
 - a single date, a same-month range, and a multi-month range;
 - a narrow pane where two calendars must stack without overflow;
-- localized labels and red Saturday/Sunday styling.
+- localized labels and muted Saturday/Sunday styling.
 
 Do not commit `build/` or `node_modules/`; both are intentionally ignored.
 Do not create Git commits unless the user explicitly requests one. When

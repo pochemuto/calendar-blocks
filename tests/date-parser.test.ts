@@ -49,7 +49,6 @@ describe("parseDateInput", () => {
 	it.each<[string, number | undefined, string]>([
 		["1 Mar", undefined, "missing-year"],
 		["1.3", undefined, "missing-year"],
-		["1 Mar - 4 Apr 2026", undefined, "missing-year"],
 		["1 Mar", 0, "invalid-year"],
 		["1 Mar", 10000, "invalid-year"],
 		["1 Mar", NaN, "invalid-year"],
@@ -57,11 +56,9 @@ describe("parseDateInput", () => {
 		["31/04/2026", 2026, "invalid-day"],
 		["1 Unknown 2026", 2026, "invalid-month"],
 		["12/31/2026", 2026, "invalid-month"],
-		["31 Dec - 1 Jan", 2026, "reversed-range"],
 		["2026-03.02", 2026, "invalid-format"],
 		["02.03/2026", 2026, "invalid-format"],
 		["1 Mar 26", 2026, "invalid-format"],
-		["1 Mar\n4 Apr", 2026, "invalid-format"],
 		["2026-03-02 trailing", 2026, "invalid-format"],
 	])("rejects %s with creation year %s", (source, year, code) => {
 		expect(parseDateInput(source, year)).toMatchObject({ ok: false, code });
@@ -136,7 +133,7 @@ describe("parseDateInput", () => {
 		["31 апреля", "invalid-day"],
 		["29 февраля", "invalid-day"],
 		["1 неизвестный", "invalid-month"],
-		["4 апреля - 1 марта", "reversed-range"],
+		["4 апреля 2026 - 1 марта 2026", "reversed-range"],
 	])("validates localized date %s", (source, code) => {
 		expect(parseDateInput(source, 2026, "ru")).toMatchObject({ ok: false, code });
 	});
@@ -162,8 +159,6 @@ describe("parseDateInput", () => {
 	it.each([
 		["", "invalid-format"],
 
-		["2025.07.27\n2025.08.03", "invalid-format"],
-		["date: 2025.07.27", "invalid-format"],
 		["0000.01.01", "invalid-year"],
 		["2025.00.01", "invalid-month"],
 		["2025.13.01", "invalid-month"],
@@ -199,5 +194,156 @@ describe("formatDateSelection", () => {
 				"2025.07.27 - 2025.08.03",
 			);
 		}
+	});
+});
+
+describe("multiple date entries", () => {
+	it("parses mixed ranges and dates, blank lines, CRLF and inherited years", () => {
+		expect(parseDateInput(" 1 Mar - 4 Mar\r\n\r\n 3 Mar\r\n5.4 - 7.4 ", 2026)).toEqual({
+			ok: true, value: { kind: "multiple", entries: [
+				{ kind: "range", start: { year: 2026, month: 3, day: 1 }, end: { year: 2026, month: 3, day: 4 } },
+				{ kind: "single", date: { year: 2026, month: 3, day: 3 } },
+				{ kind: "range", start: { year: 2026, month: 4, day: 5 }, end: { year: 2026, month: 4, day: 7 } },
+			] },
+		});
+	});
+	it.each([
+		["2026.03.01\n2026.02.30", "invalid-day", "Line 2"],
+		["2026.03.01\n\n2026.04.02 - 2026.04.01", "reversed-range", "Line 3"],
+		["2026.03.01\n1 Mar", "missing-year", "Line 2"],
+		["2026.03.01 -\n2026.03.02", "invalid-format", "Line 1"],
+	])("rejects the entire block for an invalid line", (source, code, line) => {
+		expect(parseDateInput(source)).toMatchObject({ ok: false, code, message: expect.stringContaining(line) });
+	});
+	it("round trips a multi-line selection", () => {
+		const source = "2026.03.01 - 2026.03.04\n2026.03.03";
+		const result = parseDateInput(source);
+		if (!result.ok) throw new Error(result.message);
+		expect(formatDateSelection(result.value)).toBe(source);
+	});
+});
+
+
+describe("entry limit", () => {
+	it.each(["2026.06.05 - 2026.06.11", "2026.06.10", "2026.06.10 - 2026.06.10"])(
+		"accepts 40 entries and rejects the 41st: %s", (entry) => {
+			const forty = Array(40).fill(entry).join("\n");
+			expect(parseDateInput(forty)).toMatchObject({ ok: true });
+			expect(parseDateInput(`${forty}\n${entry}`)).toMatchObject({
+				ok: false,
+				code: "too-many-entries",
+				message: "Line 41: A date block supports at most 40 ranges and single dates in total.",
+			});
+		},
+	);
+	it("counts ranges and single dates together while ignoring blank lines", () => {
+		const forty = Array.from({ length: 40 }, (_, index) =>
+			index % 2 === 0 ? "2026.06.05 - 2026.06.11" : "2026.06.10",
+		).join("\n\n");
+		expect(parseDateInput(forty).ok).toBe(true);
+		expect(parseDateInput(`${forty}\n\n2026.06.12`)).toMatchObject({
+			ok: false, code: "too-many-entries", message: expect.stringContaining("Line 81:"),
+		});
+	});
+});
+
+
+describe("labeled entries", () => {
+	it("parses a named range with the note creation year", () => {
+		expect(parseDateInput(" Vacation : 1 Mar - 9 Mar ", 2026)).toEqual({
+			ok: true, value: { kind: "range", label: "Vacation",
+				start: { year: 2026, month: 3, day: 1 }, end: { year: 2026, month: 3, day: 9 } },
+		});
+	});
+	it("preserves labels, localized dates and unlabeled entries when formatting", () => {
+		const parsed = parseDateInput("Отпуск 🌴: 1 марта - 9 марта\n2026.03.10\nBirthday: 11 Mar", 2026, "ru");
+		if (!parsed.ok) throw new Error(parsed.message);
+		expect(formatDateSelection(parsed.value)).toBe("Отпуск 🌴: 2026.03.01 - 2026.03.09\n2026.03.10\nBirthday: 2026.03.11");
+		expect(parseDateInput(formatDateSelection(parsed.value))).toEqual(parsed);
+	});
+	it.each([
+		[": 2026.03.01", "invalid-format"],
+		["Vacation:", "invalid-format"],
+		["Vacation: 31 Feb 2026", "invalid-day"],
+		["Vacation: 9 Mar 2026 - 1 Mar 2026", "reversed-range"],
+		["Vacation: 1 Mar - 9 Mar", "missing-year"],
+		["Vacation: 2026.03.01: extra", "invalid-format"],
+	])("validates dates and labels in %s", (source, code) => {
+		expect(parseDateInput(source)).toMatchObject({ ok: false, code });
+	});
+	it("reports the line number of an invalid labeled entry", () => {
+		expect(parseDateInput("2026.03.01\nVacation: 31 Feb 2026")).toMatchObject({
+			ok: false, code: "invalid-day", message: expect.stringContaining("Line 2:"),
+		});
+	});
+	it("applies the 40-entry limit to labeled entries", () => {
+		const source = Array(40).fill("Vacation: 1 Mar 2026 - 9 Mar 2026").join("\n");
+		expect(parseDateInput(source).ok).toBe(true);
+		expect(parseDateInput(`${source}\nBirthday: 10 Mar 2026`)).toMatchObject({ ok: false, code: "too-many-entries" });
+	});
+});
+
+
+describe("omitted range end year", () => {
+	it.each([
+		["28 Dec 2005 - 1 Jan", undefined, "en", 2005, 12, 28, 2006, 1, 1],
+		["28 Dec 2005 - 1 Jan", 2026, "en", 2005, 12, 28, 2006, 1, 1],
+		["1 Mar 2005 - 9 Mar", 2026, "en", 2005, 3, 1, 2005, 3, 9],
+		["31 Dec - 1 Jan", 2026, "en", 2026, 12, 31, 2027, 1, 1],
+		["28.12.2005 - 1.1", undefined, "en", 2005, 12, 28, 2006, 1, 1],
+		["28/12/2005 — 1/1", 2026, "en", 2005, 12, 28, 2006, 1, 1],
+		["28 декабря 2005 – 1 января", undefined, "ru", 2005, 12, 28, 2006, 1, 1],
+		["28 Mar 2005 - 1 Mar", undefined, "en", 2005, 3, 28, 2006, 3, 1],
+		["1 Mar 2005 - 1 Mar", undefined, "en", 2005, 3, 1, 2005, 3, 1],
+		["28 Dec 2023 - 29 Feb", undefined, "en", 2023, 12, 28, 2024, 2, 29],
+	])("infers the end year in %s", (source, year, locale, sy, sm, sd, ey, em, ed) => {
+		expect(parseDateInput(source, year, locale)).toEqual({
+			ok: true, value: { kind: "range", start: { year: sy, month: sm, day: sd }, end: { year: ey, month: em, day: ed } },
+		});
+	});
+	it.each([
+		["28 Dec 9999 - 1 Jan", "invalid-year"],
+		["28 Dec 2024 - 29 Feb", "invalid-day"],
+		["28 Dec 2005 - 31 Apr", "invalid-day"],
+		["28 Dec 2005 - 1 Jan 2005", "reversed-range"],
+	])("validates inferred dates and preserves explicit years in %s", (source, code) => {
+		expect(parseDateInput(source)).toMatchObject({ ok: false, code });
+	});
+	it("infers each labeled range independently in multi-line blocks", () => {
+		const result = parseDateInput("Vacation: 28 Dec 2005 - 1 Jan\nTrip: 1 Mar 2008 - 9 Mar");
+		if (!result.ok) throw new Error(result.message);
+		expect(formatDateSelection(result.value)).toBe("Vacation: 2005.12.28 - 2006.01.01\nTrip: 2008.03.01 - 2008.03.09");
+	});
+});
+
+
+describe("omitted range start year", () => {
+	it.each([
+		["28 Dec - 1 Jan 2006", undefined, "en", 2005, 12, 28, 2006, 1, 1],
+		["28 Dec - 1 Jan 2006", 2026, "en", 2005, 12, 28, 2006, 1, 1],
+		["1 Mar - 9 Mar 2005", 2026, "en", 2005, 3, 1, 2005, 3, 9],
+		["1 Mar - 1 Mar 2005", undefined, "en", 2005, 3, 1, 2005, 3, 1],
+		["28.12 - 1.1.2006", undefined, "en", 2005, 12, 28, 2006, 1, 1],
+		["28/12 — 2006-01-01", undefined, "en", 2005, 12, 28, 2006, 1, 1],
+		["28 декабря – 1 января 2006", undefined, "ru", 2005, 12, 28, 2006, 1, 1],
+		["28 Mar - 1 Mar 2006", undefined, "en", 2005, 3, 28, 2006, 3, 1],
+		["29 Feb - 1 Jan 2025", 2026, "en", 2024, 2, 29, 2025, 1, 1],
+	])("infers the start year in %s", (source, year, locale, sy, sm, sd, ey, em, ed) => {
+		expect(parseDateInput(source, year, locale)).toEqual({
+			ok: true, value: { kind: "range", start: { year: sy, month: sm, day: sd }, end: { year: ey, month: em, day: ed } },
+		});
+	});
+	it.each([
+		["28 Dec - 1 Jan 0001", "invalid-year"],
+		["29 Feb - 1 Jan 2024", "invalid-day"],
+		["31 Apr - 1 Jan 2006", "invalid-day"],
+		["28 Dec 2006 - 1 Jan 2006", "reversed-range"],
+	])("validates inferred starts in %s", (source, code) => {
+		expect(parseDateInput(source)).toMatchObject({ ok: false, code });
+	});
+	it("infers years independently for labeled ranges in both directions", () => {
+		const result = parseDateInput("Vacation: 28 Dec - 1 Jan 2006\nTrip: 28 Dec 2008 - 1 Jan", 2026);
+		if (!result.ok) throw new Error(result.message);
+		expect(formatDateSelection(result.value)).toBe("Vacation: 2005.12.28 - 2006.01.01\nTrip: 2008.12.28 - 2009.01.01");
 	});
 });

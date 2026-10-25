@@ -13,7 +13,6 @@ import {
 	type CalendarBlocksSettings,
 	CalendarBlocksSettingTab,
 	DEFAULT_SETTINGS,
-	isCalendarTheme,
 } from "./settings";
 
 export default class CalendarBlocksPlugin extends Plugin {
@@ -45,7 +44,6 @@ export default class CalendarBlocksPlugin extends Plugin {
 
 			renderCalendarSelection(element, result.value, locale, {
 				stretchCalendar: this.settings.stretchCalendar,
-				theme: this.settings.theme,
 			});
 		};
 
@@ -72,12 +70,7 @@ export default class CalendarBlocksPlugin extends Plugin {
 			| null;
 
 		this.settings = {
-			...DEFAULT_SETTINGS,
-			...stored,
 			stretchCalendar: stored?.stretchCalendar === true,
-			theme: isCalendarTheme(stored?.theme)
-				? stored.theme
-				: DEFAULT_SETTINGS.theme,
 		};
 	}
 
@@ -91,7 +84,6 @@ export default class CalendarBlocksPlugin extends Plugin {
 			roots.forEach((root) => {
 				rerenderCalendarRoot(root, {
 					stretchCalendar: this.settings.stretchCalendar,
-					theme: this.settings.theme,
 				});
 			});
 		});
