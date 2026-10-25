@@ -204,7 +204,7 @@ compact layout.
 ### Manual installation from Releases
 
 1. Open the [latest release](https://github.com/pochemuto/calendar-blocks/releases/latest)
-   and download the attached `calendar-blocks-<version>.zip` archive. Do not
+   and download the attached `main.js`, `manifest.json`, and `styles.css` files. Do not
    download GitHub's automatically generated source code archives.
 2. Create this directory inside your Obsidian vault:
 
@@ -212,7 +212,7 @@ compact layout.
    <vault>/.obsidian/plugins/calendar-blocks/
    ```
 
-3. Extract the archive contents directly into that directory. The resulting
+3. Copy the three downloaded files directly into that directory. The resulting
    layout must be:
 
    ```text
@@ -251,8 +251,7 @@ The minimum supported Obsidian version is 1.5.7, which introduced the
 
 Create a Git tag that exactly matches the manifest version, without a `v`
 prefix (for example, `0.1.1`). Pushing that tag runs CI and publishes a GitHub
-release with `main.js`, `manifest.json`, and `styles.css` as individual assets,
-plus a ZIP archive for manual installation.
+release with only `main.js`, `manifest.json`, and `styles.css` as attached assets.
 
 Before publishing the release, CI generates GitHub build provenance attestations
 for the three individual plugin assets. The signing permissions are restricted

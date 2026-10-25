@@ -81,17 +81,12 @@ jobs:
             exit 1
           fi
 
-      - name: Create release archive
-        if: startsWith(github.ref, 'refs/tags/')
-        run: zip -j "calendar-blocks-${GITHUB_REF_NAME}.zip" build/main.js build/manifest.json build/styles.css
-
       - name: Upload release assets
         if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v4
         with:
           name: release-assets
           path: |
-            calendar-blocks-${{ github.ref_name }}.zip
             build/main.js
             build/manifest.json
             build/styles.css
@@ -113,6 +108,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: release-assets
+          path: build
 
       - name: Attest release assets
         uses: actions/attest@v4
@@ -126,4 +122,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: gh release create "$GITHUB_REF_NAME" "calendar-blocks-${GITHUB_REF_NAME}.zip" build/main.js build/manifest.json build/styles.css --generate-notes --verify-tag
+        run: gh release create "$GITHUB_REF_NAME" build/main.js build/manifest.json build/styles.css --generate-notes --verify-tag
