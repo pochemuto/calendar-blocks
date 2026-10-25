@@ -1,1 +1,2 @@
 - Addressed Obsidian review feedback.
+- Include the plugin version in release titles.

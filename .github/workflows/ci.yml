@@ -135,4 +135,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: gh release create "$GITHUB_REF_NAME" build/main.js build/manifest.json build/styles.css --notes-file "$RUNNER_TEMP/release-notes.md" --verify-tag
+        run: gh release create "$GITHUB_REF_NAME" build/main.js build/manifest.json build/styles.css --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/release-notes.md" --verify-tag
