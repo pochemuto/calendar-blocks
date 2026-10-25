@@ -247,8 +247,30 @@ npm run test:visual:update
 npm run test:visual:update -- --grep legend
 ```
 
-Review the changed PNGs before accepting them, then rerun `npm test`. Add cases
-to `tests/visual/cases.ts`; each case produces a named PNG for each theme.
+Review the changed PNGs before accepting them, then rerun `npm test`.
+The input fixtures live in `tests/test-data/visual/*.md`. Each Markdown file
+has the same name as its PNG (for example, `adjacent-months-light.md`), contains
+one fenced `date` or `dates` block, and embeds both light and dark reference
+images using relative links. Open it on GitHub to see the input and output
+together. The filename suffix (`-light` or `-dark`) determines the tested theme.
+
+Optional fixture settings go in YAML frontmatter at the start of the file:
+
+```yaml
+---
+width: 280
+locale: ru
+stretch: true
+---
+```
+
+Defaults are width 640, locale `en-US`, and stretching disabled; the source
+note creation year is fixed at 2026. To add a scenario in both themes, add
+`<name>-light.md` and `<name>-dark.md` with the input, settings and image links,
+then run `npm run test:visual:update`. There is no separate case list in code.
+Unit tests validate the Markdown format, both screenshot embeds and their
+relative paths, existing PNG targets, and a matching Markdown file for every
+reference image. Broken, missing, duplicate or swapped image links fail tests.
 Keep the Docker image version in `tests/visual/run.mjs` aligned with the exact
 `@playwright/test` dependency. Browser or font upgrades may require reviewed
 reference updates.
