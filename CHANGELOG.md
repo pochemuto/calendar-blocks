@@ -1,3 +1,4 @@
 - Addressed Obsidian review feedback.
 - Include the plugin version in release titles.
 - Release version 0.1.3.
+- Share one visual test case across all platforms and light and dark themes.

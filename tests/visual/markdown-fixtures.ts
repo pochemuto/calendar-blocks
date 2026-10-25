@@ -6,17 +6,28 @@ import { DATE_BLOCK_LANGUAGES } from "../../src/date-block";
 
 export interface VisualCase {
 	name: string;
-	theme: "light" | "dark";
 	source: string;
 	width?: number;
 	locale?: string;
 	stretch?: boolean;
 }
 
-export function parseVisualCase(markdown: string, filename: string): VisualCase {
+export const VISUAL_THEMES = ["light", "dark"] as const;
+const fixtureDirectory = fileURLToPath(new URL("../test-data/visual/", import.meta.url));
+
+export function loadVisualPlatforms(): string[] {
+	return readdirSync(fixtureDirectory, { withFileTypes: true })
+		.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
+}
+
+export function parseVisualCase(
+	markdown: string,
+	filename: string,
+	platforms: readonly string[] = ["linux"],
+): VisualCase {
 	const fail = (message: string): never => { throw new Error(`${filename}: ${message}`); };
-	const name = /^(.*)-(light|dark)\.md$/.exec(filename);
-	if (!name || !name[1]) return fail("expected <case>-light.md or <case>-dark.md");
+	const name = /^(.+)\.md$/.exec(filename);
+	if (!name || /-(light|dark)$/.test(name[1])) return fail("expected <case>.md without a theme suffix");
 	markdown = markdown.replace(/\r\n/g, "\n");
 	let options: Record<string, unknown> = {};
 	const lines = markdown.split("\n");
@@ -58,16 +69,19 @@ export function parseVisualCase(markdown: string, filename: string): VisualCase 
 	if (prose.replace(imagePattern, "").includes("![")) {
 		return fail("screenshot embeds must use standalone Markdown image lines");
 	}
-	if (images.length !== 2) return fail("expected exactly two screenshot embeds, one per theme");
-	for (const theme of ["light", "dark"]) {
-		const path = `linux/${name[1]}-${theme}.png`;
-		if (!images.some((image) => image[1] === `linux-${theme}` && image[2] === path)) {
-			return fail(`expected ![linux-${theme}](${path})`);
+	if (images.length !== platforms.length * VISUAL_THEMES.length) {
+		return fail("expected one screenshot embed per platform and theme");
+	}
+	for (const platform of platforms) {
+		for (const theme of VISUAL_THEMES) {
+			const path = `${platform}/${name[1]}-${theme}.png`;
+			if (!images.some((image) => image[1] === `${platform}-${theme}` && image[2] === path)) {
+				return fail(`expected ![${platform}-${theme}](${path})`);
+			}
 		}
 	}
 	return {
 		name: name[1],
-		theme: name[2] as VisualCase["theme"],
 		source: dates[0][2].replace(/\r\n/g, "\n").replace(/\n$/, ""),
 		width: options.width as number | undefined,
 		locale: options.locale as string | undefined,
@@ -76,8 +90,11 @@ export function parseVisualCase(markdown: string, filename: string): VisualCase 
 }
 
 export function loadVisualCases(): VisualCase[] {
-	const directory = fileURLToPath(new URL("../test-data/visual/", import.meta.url));
-	const filenames = readdirSync(directory).filter((filename) => filename.endsWith(".md")).sort();
+	const filenames = readdirSync(fixtureDirectory).filter((filename) => filename.endsWith(".md")).sort();
 	if (filenames.length === 0) throw new Error("No Markdown visual cases found");
-	return filenames.map((filename) => parseVisualCase(readFileSync(join(directory, filename), "utf8"), filename));
+	const platforms = loadVisualPlatforms();
+	if (platforms.length === 0) throw new Error("No visual screenshot platform directories found");
+	return filenames.map((filename) => parseVisualCase(
+		readFileSync(join(fixtureDirectory, filename), "utf8"), filename, platforms,
+	));
 }

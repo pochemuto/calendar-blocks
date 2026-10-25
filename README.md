@@ -314,11 +314,15 @@ npm run test:visual:update -- --grep legend
 ```
 
 Review the changed PNGs before accepting them, then rerun `npm test`.
-The input fixtures live in `tests/test-data/visual/*.md`. Each Markdown file
-has the same name as its PNG (for example, `adjacent-months-light.md`), contains
-one fenced `date` or `dates` block, and embeds both light and dark reference
-images using relative links. Open it on GitHub to see the input and output
-together. The filename suffix (`-light` or `-dark`) determines the tested theme.
+The input fixtures live in `tests/test-data/visual/*.md`. Each scenario has one
+Markdown file (for example, `adjacent-months.md`) shared by all platforms and
+themes. It contains one fenced `date` or `dates` block and embeds light and dark
+reference images for every platform directory using relative links. Screenshot
+paths follow `<platform>/<case>-<theme>.png`, for example
+`linux/adjacent-months-light.png` and `linux/adjacent-months-dark.png`.
+Open the Markdown file on GitHub to see all inputs and outputs together.
+The test runner automatically runs each scenario in both light and dark themes;
+Playwright selects the screenshot directory for the platform it runs on.
 
 Optional fixture settings go in YAML frontmatter at the start of the file:
 
@@ -332,11 +336,13 @@ stretch: true
 
 Defaults are width 640, locale `en-US`, and stretching disabled; the source
 note creation year is fixed at 2026. To add a scenario in both themes, add
-`<name>-light.md` and `<name>-dark.md` with the input, settings and image links,
+`<name>.md` with the input, settings and image links for all platforms and themes,
 then run `npm run test:visual:update`. There is no separate case list in code.
-Unit tests validate the Markdown format, both screenshot embeds and their
+Unit tests validate the Markdown format, all screenshot embeds and their
 relative paths, existing PNG targets, and a matching Markdown file for every
-reference image. Broken, missing, duplicate or swapped image links fail tests.
+reference image across every platform directory. Broken, missing, duplicate or
+swapped image links fail tests. Adding another platform requires its light and
+dark screenshot embeds in each existing scenario, with no duplicate input files.
 Keep the Docker image version in `tests/visual/run.mjs` aligned with the exact
 `@playwright/test` dependency. Browser or font upgrades may require reviewed
 reference updates.

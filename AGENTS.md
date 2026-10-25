@@ -139,8 +139,11 @@ npm test
 This includes pixel-exact visual regression tests in a pinned Playwright Docker
 image; Docker must be running. Reference screenshots are tracked under
 `tests/test-data/visual/linux/`. Inputs and optional YAML frontmatter settings are loaded
-from same-named `tests/test-data/visual/*.md` fixtures; each Markdown file
-embeds both theme screenshots for review on GitHub. Use `npm run test:visual:update` only for
+from `tests/test-data/visual/<case>.md` fixtures, one file per scenario shared
+across all platforms and themes. Each Markdown file embeds both theme screenshots
+from every platform directory for review on GitHub. Screenshot paths follow
+`<platform>/<case>-light.png` and `<platform>/<case>-dark.png`; never duplicate
+Markdown files with theme or platform suffixes. Use `npm run test:visual:update` only for
 intentional visual changes and review the resulting PNGs. See README.md for
 filtering, reports, and adding cases. `npm run test:unit` runs only Vitest.
 
