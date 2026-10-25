@@ -17,6 +17,19 @@ calendars.
      alt="A minimal calendar with June 6 selected"
      width="200">
 
+### Legend
+
+````
+```dates
+Vacation: 7 May 2027 - 17 May
+Birhday: 9 May
+```
+````
+
+<img src="docs/images/minimal-legend.png"
+     alt="Legend with smart year selection"
+     width="200">
+
 ### Range within one month
 
 ````
