@@ -52,8 +52,8 @@ export function renderCalendarSelection(
 ): void {
 	const safeLocale = getSupportedLocale(locale);
 	const display = createCalendarDisplay(selection);
-	const root = document.createElement("div");
-	const calendars = document.createElement("div");
+	const root = createEl("div");
+	const calendars = createEl("div");
 
 	root.className = "calendar-blocks-root";
 	root.classList.add("calendar-blocks-root--minimal");
@@ -81,7 +81,7 @@ export function renderCalendarSelection(
 		const omitted = previous !== undefined &&
 			(month.year - previous.year) * 12 + month.month - previous.month > 1;
 		if (display.months.length > 2 && index % 2 === 0) {
-			row = document.createElement("div");
+			row = createEl("div");
 			const next = display.months[index + 1];
 			const pairOmitted = next !== undefined &&
 				(next.year - month.year) * 12 + next.month - month.month > 1;
@@ -133,22 +133,22 @@ export function renderCalendarSelection(
 }
 
 function createLegend(selection: DateSelection): HTMLUListElement | null {
-	const legend = document.createElement("ul");
+	const legend = createEl("ul");
 	legend.className = "calendar-blocks-legend";
 	const entries = getDateEntries(selection);
 	const colors = getEntryColors(entries);
 	entries.forEach((entry, index) => {
 		if (!entry.label) return;
-		const item = document.createElement("li");
+		const item = createEl("li");
 		item.className = "calendar-blocks-legend-item";
-		const marker = document.createElement("span");
+		const marker = createEl("span");
 		marker.className = "calendar-blocks-legend-marker";
 		if (entry.kind === "range") {
 			marker.classList.add("calendar-blocks-legend-marker--range");
 		}
 		marker.setAttribute("aria-hidden", "true");
 		marker.style.setProperty("--calendar-blocks-selection-color", colors[index]);
-		const label = document.createElement("span");
+		const label = createEl("span");
 		label.className = "calendar-blocks-legend-label";
 		label.textContent = entry.label;
 		item.append(marker, label);

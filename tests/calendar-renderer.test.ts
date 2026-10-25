@@ -2,6 +2,8 @@
  * @vitest-environment jsdom
  */
 
+import "./obsidian-dom";
+
 import { describe, expect, it } from "vitest";
 
 import {

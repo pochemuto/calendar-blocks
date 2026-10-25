@@ -1,3 +1,5 @@
+import "../obsidian-dom";
+
 import { renderCalendarSelection } from "../../src/calendar-renderer";
 import { parseDateInput } from "../../src/date-parser";
 import type { VisualCase } from "./markdown-fixtures";
