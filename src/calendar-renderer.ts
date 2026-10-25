@@ -52,8 +52,8 @@ export function renderCalendarSelection(
 ): void {
 	const safeLocale = getSupportedLocale(locale);
 	const display = createCalendarDisplay(selection);
-	const root = createEl("div");
-	const calendars = createEl("div");
+	const root = createDiv();
+	const calendars = createDiv();
 
 	root.className = "calendar-blocks-root";
 	root.classList.add("calendar-blocks-root--minimal");
@@ -81,7 +81,7 @@ export function renderCalendarSelection(
 		const omitted = previous !== undefined &&
 			(month.year - previous.year) * 12 + month.month - previous.month > 1;
 		if (display.months.length > 2 && index % 2 === 0) {
-			row = createEl("div");
+			row = createDiv();
 			const next = display.months[index + 1];
 			const pairOmitted = next !== undefined &&
 				(next.year - month.year) * 12 + next.month - month.month > 1;
@@ -141,14 +141,14 @@ function createLegend(selection: DateSelection): HTMLUListElement | null {
 		if (!entry.label) return;
 		const item = createEl("li");
 		item.className = "calendar-blocks-legend-item";
-		const marker = createEl("span");
+		const marker = createSpan();
 		marker.className = "calendar-blocks-legend-marker";
 		if (entry.kind === "range") {
 			marker.classList.add("calendar-blocks-legend-marker--range");
 		}
 		marker.setAttribute("aria-hidden", "true");
 		marker.style.setProperty("--calendar-blocks-selection-color", colors[index]);
-		const label = createEl("span");
+		const label = createSpan();
 		label.className = "calendar-blocks-legend-label";
 		label.textContent = entry.label;
 		item.append(marker, label);
