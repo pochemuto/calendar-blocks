@@ -20,7 +20,6 @@ export default class CalendarBlocksPlugin extends Plugin {
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
-		console.log("[Calendar Blocks] loaded");
 
 		const processor = (
 			source: string,
@@ -52,10 +51,6 @@ export default class CalendarBlocksPlugin extends Plugin {
 		}
 
 		this.addSettingTab(new CalendarBlocksSettingTab(this.app, this));
-	}
-
-	onunload(): void {
-		console.log("[Calendar Blocks] unloaded");
 	}
 
 	async updateSettings(settings: CalendarBlocksSettings): Promise<void> {
