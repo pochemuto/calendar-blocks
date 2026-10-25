@@ -141,6 +141,9 @@ function createLegend(selection: DateSelection): HTMLUListElement | null {
 		item.className = "calendar-blocks-legend-item";
 		const marker = document.createElement("span");
 		marker.className = "calendar-blocks-legend-marker";
+		if (entry.kind === "range") {
+			marker.classList.add("calendar-blocks-legend-marker--range");
+		}
 		marker.setAttribute("aria-hidden", "true");
 		marker.style.setProperty("--calendar-blocks-selection-color", SELECTION_COLORS[index]);
 		const label = document.createElement("span");

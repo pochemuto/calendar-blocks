@@ -52,7 +52,10 @@ months form responsive rows of at most two calendars.
 Each entry may have a plain-text label before a colon, for example
 `Vacation: 1 Mar - 9 Mar`. Preserve labels in canonical formatting and accessible
 SVG descriptions. If any entries have labels, render a legend below all calendars,
-with one labeled entry per line and a colored circle on the left. Use the entry's
+with one labeled entry per line and a marker on the left: a pill for ranges
+(about 1.47 times the circle diameter, matching range color and opacity), or a solid circle
+for single dates. Align markers to the right of a shared column so labels align.
+Use the entry's
 original palette index, including unlabeled entries; omit unlabeled legend items.
 Render label text with `textContent`, never HTML.
 

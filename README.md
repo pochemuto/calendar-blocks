@@ -64,7 +64,10 @@ Birthday: 8 Mar
 ````
 
 The legend appears below all calendars, with one labeled entry per line and a
-circle of the entry's color on the left. Unlabeled entries are omitted from the
+marker on the left. Ranges use a pill about 1.47 times as wide as a single-date circle,
+matching the range's color and transparency. Single dates use solid circles.
+Markers share a column and align to its right edge, keeping all labels aligned.
+Unlabeled entries are omitted from the
 legend but still consume their palette color. If no entries have labels, no
 legend is shown. Labels support plain text, including spaces and Unicode.
 

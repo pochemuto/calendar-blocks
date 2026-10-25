@@ -9,6 +9,7 @@
 	--calendar-blocks-calendar-width: 12.75rem;
 	--calendar-blocks-gap: var(--size-4-2, 0.5rem);
 	--calendar-blocks-red: var(--color-red, #d32f2f);
+	--calendar-blocks-range-opacity: 0.16;
 
 	container-name: calendar-blocks;
 	container-type: inline-size;
@@ -120,7 +121,7 @@
 
 .calendar-blocks-range-segment {
 	fill: var(--calendar-blocks-range-color, var(--calendar-blocks-red));
-	fill-opacity: 0.16;
+	fill-opacity: var(--calendar-blocks-range-opacity);
 }
 
 .calendar-blocks-selection-circle {
@@ -133,9 +134,11 @@
 }
 
 .calendar-blocks-root .calendar-blocks-legend {
+	--calendar-blocks-legend-marker-width: calc(1.3em * 2 / 3 * 1.1);
+
 	display: flex;
 	flex-direction: column;
-	gap: var(--size-4-1, 0.25rem);
+	gap: calc(var(--size-4-1, 0.25rem) * 0.75);
 	margin: calc(var(--size-4-3, 0.75rem) / 2) 0 0;
 	padding: 0;
 	list-style: none;
@@ -144,18 +147,25 @@
 }
 
 .calendar-blocks-root .calendar-blocks-legend-item {
-	display: flex;
+	display: grid;
+	grid-template-columns: var(--calendar-blocks-legend-marker-width) minmax(0, 1fr);
 	align-items: baseline;
 	gap: var(--size-4-2, 0.5rem);
 	margin-inline-start: 0.5em;
 }
 
 .calendar-blocks-legend-marker {
-	flex: 0 0 0.65em;
+	justify-self: end;
 	width: 0.65em;
 	height: 0.65em;
 	border-radius: 50%;
 	background-color: var(--calendar-blocks-selection-color);
+}
+
+.calendar-blocks-legend-marker--range {
+	width: var(--calendar-blocks-legend-marker-width);
+	border-radius: 999px;
+	opacity: var(--calendar-blocks-range-opacity);
 }
 
 .calendar-blocks-legend-label {

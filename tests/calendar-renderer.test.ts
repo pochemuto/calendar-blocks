@@ -533,6 +533,8 @@ describe("legend", () => {
 			expect(legend.previousElementSibling?.classList).toContain("calendar-blocks-calendars");
 			expect(Array.from(legend.querySelectorAll("li"), (item) => item.textContent)).toEqual(["Vacation", "Birthday"]);
 			const markers = legend.querySelectorAll<HTMLElement>(".calendar-blocks-legend-marker");
+			expect(markers[0].classList).toContain("calendar-blocks-legend-marker--range");
+			expect(markers[1].classList).not.toContain("calendar-blocks-legend-marker--range");
 			expect(Array.from(markers, (marker) => marker.style.getPropertyValue("--calendar-blocks-selection-color")))
 				.toEqual([SELECTION_COLORS[1], SELECTION_COLORS[3]]);
 			for (const marker of Array.from(markers)) {
@@ -547,6 +549,11 @@ describe("legend", () => {
 		checkLegend();
 		rerenderCalendarRoot(container.querySelector<HTMLElement>(".calendar-blocks-root")!, { stretchCalendar: true });
 		checkLegend();
+	});
+	it("uses a pill marker even for a range with identical endpoints", () => {
+		const container = render("Vacation: 1 Mar - 1 Mar");
+		expect(container.querySelector(".calendar-blocks-legend-marker")?.classList)
+			.toContain("calendar-blocks-legend-marker--range");
 	});
 	it("renders label text literally and includes it in accessible SVG descriptions", () => {
 		const label = '<img src=x onerror=alert(1)> & Vacation';
