@@ -5,3 +5,4 @@
 - Correct the birthday label and add a conference to the README legend example.
 - Vertically align months so their titles appear at the same level.
 - Add a marker for the current day.
+- Allow colons in date labels, including times, by using the last colon as the date separator.

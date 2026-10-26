@@ -184,7 +184,7 @@ function parseDateEntry(
 	const patterns = getDatePatterns(locale);
 	let input = source.trim().normalize("NFC");
 	let label: string | undefined;
-	const colon = input.indexOf(":");
+	const colon = input.lastIndexOf(":");
 	if (colon !== -1) {
 		label = input.slice(0, colon).trim();
 		input = input.slice(colon + 1).trim();

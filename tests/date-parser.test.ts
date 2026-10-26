@@ -305,6 +305,24 @@ describe("entry limit", () => {
 
 
 describe("labeled entries", () => {
+	it.each([
+		["Grand Egyptian Museum 15:00: 2026.11.01", "Grand Egyptian Museum 15:00"],
+		["Visit: Grand Egyptian Museum 15:00: 2026.11.01", "Visit: Grand Egyptian Museum 15:00"],
+	])("uses the last colon as the date separator in %s", (source, label) => {
+		const parsed = parseDateInput(source);
+		expect(parsed).toEqual({
+			ok: true, value: { kind: "single", label, date: { year: 2026, month: 11, day: 1 } },
+		});
+		if (!parsed.ok) throw new Error(parsed.message);
+		expect(formatDateSelection(parsed.value)).toBe(source);
+		expect(parseDateInput(formatDateSelection(parsed.value))).toEqual(parsed);
+	});
+	it("preserves colons in range labels", () => {
+		expect(parseDateInput("Visit 15:00: 2026.11.01 - 2026.11.02")).toEqual({
+			ok: true, value: { kind: "range", label: "Visit 15:00",
+				start: { year: 2026, month: 11, day: 1 }, end: { year: 2026, month: 11, day: 2 } },
+		});
+	});
 	it("parses a named range with the note creation year", () => {
 		expect(parseDateInput(" Vacation : 1 Mar - 9 Mar ", 2026)).toEqual({
 			ok: true, value: { kind: "range", label: "Vacation",
