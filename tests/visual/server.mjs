@@ -6,6 +6,7 @@ import { createServer } from "node:http";
 const bundle = await build({
 	entryPoints: ["tests/visual/fixture.ts"],
 	bundle: true,
+	loader: { ".svg": "dataurl" },
 	write: false,
 	format: "iife",
 	platform: "browser",

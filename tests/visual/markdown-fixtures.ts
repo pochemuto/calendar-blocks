@@ -10,6 +10,8 @@ export interface VisualCase {
 	width?: number;
 	locale?: string;
 	stretch?: boolean;
+	showToday?: boolean;
+	markerSeed?: number;
 }
 
 export const VISUAL_THEMES = ["light", "dark"] as const;
@@ -50,7 +52,7 @@ export function parseVisualCase(
 	}
 	if (blocks.some((block) => block[1] === "json")) return fail("settings belong in YAML frontmatter");
 	for (const key of Object.keys(options)) {
-		if (!["width", "locale", "stretch"].includes(key)) return fail(`unknown setting: ${key}`);
+		if (!["width", "locale", "stretch", "showToday", "markerSeed"].includes(key)) return fail(`unknown setting: ${key}`);
 	}
 	if (options.width !== undefined && (typeof options.width !== "number" ||
 		!Number.isInteger(options.width) || options.width <= 32 || options.width > 900)) {
@@ -61,6 +63,13 @@ export function parseVisualCase(
 	}
 	if (options.stretch !== undefined && typeof options.stretch !== "boolean") {
 		return fail("stretch must be a boolean");
+	}
+	if (options.showToday !== undefined && typeof options.showToday !== "boolean") {
+		return fail("showToday must be a boolean");
+	}
+	if (options.markerSeed !== undefined &&
+		(typeof options.markerSeed !== "number" || !Number.isSafeInteger(options.markerSeed))) {
+		return fail("markerSeed must be an integer");
 	}
 	// Require rendered image embeds, not links shown as code or hidden in comments.
 	const prose = markdown.replace(fencePattern, "").replace(/<!--[\s\S]*?(?:-->|$)/g, "");
@@ -86,6 +95,8 @@ export function parseVisualCase(
 		width: options.width as number | undefined,
 		locale: options.locale as string | undefined,
 		stretch: options.stretch as boolean | undefined,
+		showToday: options.showToday as boolean | undefined,
+		markerSeed: options.markerSeed as number | undefined,
 	};
 }
 

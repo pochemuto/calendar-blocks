@@ -15,6 +15,7 @@ await Promise.all([
 const buildOptions = {
 	entryPoints: ["src/main.ts"],
 	bundle: true,
+	loader: { ".svg": "dataurl" },
 	external: [
 		"obsidian",
 		"electron",

@@ -19,6 +19,10 @@ window.renderVisualCase = async (visualCase, theme) => {
 	if (!parsed.ok) throw new Error(parsed.message);
 	renderCalendarSelection(container, parsed.value, visualCase.locale ?? "en-US", {
 		stretchCalendar: visualCase.stretch ?? false,
+		showToday: visualCase.showToday ?? true,
+		markerSeed: visualCase.markerSeed ?? 7,
+		fileName: `${visualCase.name}.md`,
+		calendarIndex: 0,
 	});
 	await document.fonts.ready;
 };

@@ -4,7 +4,7 @@ import {
 	renderCalendarSelection,
 	rerenderCalendarRoot,
 } from "./calendar-renderer";
-import { DATE_BLOCK_LANGUAGES } from "./date-block";
+import { DATE_BLOCK_LANGUAGES, getCalendarBlockIndex } from "./date-block";
 import {
 	EXPECTED_DATE_FORMAT,
 	parseDateInput,
@@ -41,8 +41,12 @@ export default class CalendarBlocksPlugin extends Plugin {
 				return;
 			}
 
+			const section = context.getSectionInfo(element);
 			renderCalendarSelection(element, result.value, locale, {
 				stretchCalendar: this.settings.stretchCalendar,
+				showToday: this.settings.showToday,
+				fileName: context.sourcePath.split("/").pop() ?? "",
+				calendarIndex: section === null ? 0 : getCalendarBlockIndex(section.text, section.lineStart),
 			});
 		};
 
@@ -51,6 +55,14 @@ export default class CalendarBlocksPlugin extends Plugin {
 		}
 
 		this.addSettingTab(new CalendarBlocksSettingTab(this.app, this));
+		let day = new Date().toDateString();
+		this.registerInterval(window.setInterval(() => {
+			const currentDay = new Date().toDateString();
+			if (currentDay !== day) {
+				day = currentDay;
+				this.updateRenderedCalendars();
+			}
+		}, 60_000));
 	}
 
 	async updateSettings(settings: CalendarBlocksSettings): Promise<void> {
@@ -66,6 +78,7 @@ export default class CalendarBlocksPlugin extends Plugin {
 
 		this.settings = {
 			stretchCalendar: stored?.stretchCalendar === true,
+			showToday: stored?.showToday !== false,
 		};
 	}
 
@@ -79,6 +92,7 @@ export default class CalendarBlocksPlugin extends Plugin {
 			roots.forEach((root) => {
 				rerenderCalendarRoot(root, {
 					stretchCalendar: this.settings.stretchCalendar,
+					showToday: this.settings.showToday,
 				});
 			});
 		});

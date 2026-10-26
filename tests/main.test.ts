@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MarkdownPostProcessorContext } from "obsidian";
 
 type BlockProcessor = (source: string, el: HTMLElement, context: MarkdownPostProcessorContext) => void;
@@ -8,12 +8,18 @@ const mocks = vi.hoisted(() => ({
 	loadData: vi.fn(),
 	locale: vi.fn(() => "en"),
 	render: vi.fn(),
+	interval: vi.fn((_callback: () => void, _delay: number) => 1),
+	rerender: vi.fn(),
+	saveData: vi.fn(),
+	iterateAllLeaves: vi.fn(),
 	processors: new Map<string, BlockProcessor>(),
 }));
 
 vi.mock("obsidian", () => ({
 	Plugin: class {
-		app = { vault: { getFileByPath: mocks.getFileByPath } };
+		app = { vault: { getFileByPath: mocks.getFileByPath }, workspace: { iterateAllLeaves: mocks.iterateAllLeaves } };
+		registerInterval = vi.fn();
+		saveData = mocks.saveData;
 		loadData = mocks.loadData;
 		addSettingTab = () => {};
 		registerMarkdownCodeBlockProcessor = (language: string, processor: BlockProcessor) => {
@@ -23,17 +29,17 @@ vi.mock("obsidian", () => ({
 	moment: { locale: mocks.locale },
 }));
 vi.mock("../src/settings", () => ({
-	DEFAULT_SETTINGS: { stretchCalendar: false },
+	DEFAULT_SETTINGS: { stretchCalendar: false, showToday: true },
 	CalendarBlocksSettingTab: class {},
 }));
 vi.mock("../src/calendar-renderer", () => ({
 	renderCalendarSelection: mocks.render,
-	rerenderCalendarRoot: vi.fn(),
+	rerenderCalendarRoot: mocks.rerender,
 }));
 
 import CalendarBlocksPlugin from "../src/main";
 
-const context = { sourcePath: "folder/note.md" } as MarkdownPostProcessorContext;
+const context = { sourcePath: "folder/note.md", getSectionInfo: () => null } as unknown as MarkdownPostProcessorContext;
 
 async function process(source: string, language = "date") {
 	const plugin = new CalendarBlocksPlugin({} as never, {} as never);
@@ -45,8 +51,10 @@ async function process(source: string, language = "date") {
 }
 
 describe("date block processor", () => {
+	afterEach(() => vi.unstubAllGlobals());
 	beforeEach(() => {
 		vi.clearAllMocks();
+		vi.stubGlobal("window", { setInterval: mocks.interval });
 		mocks.processors.clear();
 		mocks.locale.mockReturnValue("en");
 	});
@@ -55,15 +63,64 @@ describe("date block processor", () => {
 		mocks.loadData.mockResolvedValueOnce({ theme, stretchCalendar: true });
 		const plugin = new CalendarBlocksPlugin({} as never, {} as never);
 		await plugin.onload();
-		expect(plugin.settings).toEqual({ stretchCalendar: true });
+		expect(plugin.settings).toEqual({ stretchCalendar: true, showToday: true });
 		const element = { createDiv: vi.fn() } as unknown as HTMLElement;
 		mocks.processors.get("date")!("2025.07.27", element, context);
 		expect(mocks.render).toHaveBeenLastCalledWith(
 			element,
 			{ kind: "single", date: { year: 2025, month: 7, day: 27 } },
 			"en",
-			{ stretchCalendar: true },
+			{ stretchCalendar: true, showToday: true, fileName: "note.md", calendarIndex: 0 },
 		);
+	});
+
+	it("passes the filename and date-block ordinal independently of rendering order", async () => {
+		const plugin = new CalendarBlocksPlugin({} as never, {} as never);
+		await plugin.onload();
+		const text = "```date\n2026.10.26\n```\n\n```js\n42\n```\n\n```dates\n2026.10.26\n```";
+		const render = (lineStart: number) => mocks.processors.get("date")!(
+			"2026.10.26", { createDiv: vi.fn() } as unknown as HTMLElement,
+			{ ...context, getSectionInfo: () => ({ text, lineStart, lineEnd: lineStart + 2 }) },
+		);
+		render(8);
+		expect(mocks.render).toHaveBeenLastCalledWith(expect.anything(), expect.anything(), "en",
+			expect.objectContaining({ fileName: "note.md", calendarIndex: 1 }));
+		render(0);
+		expect(mocks.render).toHaveBeenLastCalledWith(expect.anything(), expect.anything(), "en",
+			expect.objectContaining({ fileName: "note.md", calendarIndex: 0 }));
+		render(8);
+		expect(mocks.render).toHaveBeenLastCalledWith(expect.anything(), expect.anything(), "en",
+			expect.objectContaining({ fileName: "note.md", calendarIndex: 1 }));
+	});
+
+	it.each([undefined, {}, { showToday: false }, { showToday: true }])(
+		"loads Show today with a backward-compatible enabled default: %j", async (stored) => {
+			mocks.loadData.mockResolvedValueOnce(stored);
+			const plugin = new CalendarBlocksPlugin({} as never, {} as never);
+			await plugin.onload();
+			expect(plugin.settings.showToday).toBe(stored?.showToday !== false);
+		},
+	);
+
+	it("rerenders open calendars when Show today changes and when the local day changes", async () => {
+		const plugin = new CalendarBlocksPlugin({} as never, {} as never);
+		await plugin.onload();
+		const root = {} as HTMLElement;
+		mocks.iterateAllLeaves.mockImplementation((callback) => callback({
+			view: { containerEl: { querySelectorAll: () => [root] } },
+		}));
+		await plugin.updateSettings({ stretchCalendar: false, showToday: false });
+		expect(mocks.saveData).toHaveBeenCalledWith({ stretchCalendar: false, showToday: false });
+		expect(mocks.rerender).toHaveBeenLastCalledWith(root, { stretchCalendar: false, showToday: false });
+		const callback = mocks.interval.mock.calls[mocks.interval.mock.calls.length - 1][0] as () => void;
+		mocks.rerender.mockClear();
+		callback();
+		expect(mocks.rerender).not.toHaveBeenCalled();
+		const day = vi.spyOn(Date.prototype, "toDateString").mockReturnValue("next day");
+		callback();
+		expect(mocks.rerender).toHaveBeenCalledOnce();
+		day.mockRestore();
+		mocks.iterateAllLeaves.mockReset();
 	});
 
 	it.each(["date", "dates"])("uses the source note creation year for %s blocks", async (language) => {

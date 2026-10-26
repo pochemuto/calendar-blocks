@@ -200,6 +200,18 @@ Enable **Stretch calendar** in the Calendar Blocks settings to make calendars
 use the full available note width. It is disabled by default, preserving the
 compact layout.
 
+**Show today** is enabled by default. It marks the current local date with a red,
+hand-drawn open oval in any displayed month and refreshes after the day changes.
+The marker is chosen pseudorandomly from four variants with different gaps and
+stroke thicknesses. The current local date, the source filename (including its
+extension), and the date/dates block's order in the note determine the choice.
+Rerendering, resizing, or switching settings keeps the same variant for that
+combination. Block order comes from the source text, independently of render order.
+Turn it off to hide the mark. The editable SVG resource is
+[`src/assets/today-marker.svg`](src/assets/today-marker.svg); it is embedded in
+the plugin bundle during the build, alongside `today-marker-2.svg`,
+`today-marker-3.svg`, and `today-marker-4.svg`.
+
 ## Installation
 
 ### Manual installation from Releases
@@ -332,11 +344,16 @@ Optional fixture settings go in YAML frontmatter at the start of the file:
 width: 280
 locale: ru
 stretch: true
+showToday: true
 ---
 ```
 
-Defaults are width 640, locale `en-US`, and stretching disabled; the source
-note creation year is fixed at 2026. To add a scenario in both themes, add
+Defaults are width 640, locale `en-US`, stretching disabled, and Show today enabled.
+The source note creation year is fixed at 2026, and the browser clock is fixed at
+October 26, 2026, 12:00 UTC. Marker randomness uses a fixed seed of 7 for
+each fixture, so today's marker produces stable screenshots. Set `markerSeed` in
+fixture frontmatter to cover another variant reproducibly.
+To add a scenario in both themes, add
 `<name>.md` with the input, settings and image links for all platforms and themes,
 then run `npm run test:visual:update`. There is no separate case list in code.
 Unit tests validate the Markdown format, all screenshot embeds and their

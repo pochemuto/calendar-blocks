@@ -17,5 +17,6 @@
     - [ ] A date range spanning three or more months.
 - [ ] Add plugin settings.
   - [x] Stretch calendars to the available note width.
+  - [x] Show today's date with an optional hand-drawn marker.
   - [ ] Calendar width.
 - [ ] Cache rendered calendars.

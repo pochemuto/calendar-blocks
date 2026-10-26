@@ -19,6 +19,8 @@ describe("Markdown visual cases", () => {
 		expect(parseVisualCase(markdown.replace(/\n/g, "\r\n"), "narrow.md")).toEqual({
 			name: "narrow", source: "  1 Jun\n\n2 Jun - 3 Jun",
 			width: 280, locale: "ru", stretch: true,
+			showToday: undefined,
+			markerSeed: undefined,
 		});
 	});
 	it("allows empty frontmatter with default settings", () => {

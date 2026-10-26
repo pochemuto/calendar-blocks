@@ -4,7 +4,7 @@
 
 import "./obsidian-dom";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
 	renderCalendarSelection,
@@ -14,8 +14,104 @@ import {
 
 import { parseDateInput } from "../src/date-parser";
 import { SELECTION_COLORS } from "../src/selection-palette";
+import { getTodayMarkerIndex } from "../src/today-marker";
+import marker1 from "../src/assets/today-marker.svg";
+import marker2 from "../src/assets/today-marker-2.svg";
+import marker3 from "../src/assets/today-marker-3.svg";
+import marker4 from "../src/assets/today-marker-4.svg";
 
 describe("renderCalendarSelection", () => {
+	beforeEach(() => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(2026, 9, 26, 12));
+	});
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.restoreAllMocks();
+	});
+
+	it.each([[7, marker1], [0, marker2], [1, marker3], [4, marker4]] as const)("reproduces marker variant with fixed seed %i", (seed, marker) => {
+		const selection = parseDateInput("2026.10.26");
+		if (!selection.ok) throw new Error(selection.message);
+		for (let repeat = 0; repeat < 2; repeat++) {
+			const container = document.createElement("div");
+			renderCalendarSelection(container, selection.value, "en-US", { markerSeed: seed });
+			expect(container.querySelector(".calendar-blocks-today-marker")?.getAttribute("href"))
+				.toBe(marker);
+		}
+	});
+
+	it("keeps the marker fixed for a local day, filename and source ordinal across rerenders", () => {
+		const random = vi.spyOn(Math, "random");
+		const container = document.createElement("div");
+		const selection = parseDateInput("2026.10.26");
+		if (!selection.ok) throw new Error(selection.message);
+		const identity = { fileName: "Vacation.md", calendarIndex: 3 };
+		renderCalendarSelection(container, selection.value, "en-US", identity);
+		const href = () => container.querySelector(".calendar-blocks-today-marker")?.getAttribute("href");
+		const expected = [marker1, marker2, marker3, marker4][
+			getTodayMarkerIndex({ year: 2026, month: 10, day: 26 }, identity.fileName, identity.calendarIndex)
+		];
+		expect(href()).toBe(expected);
+		const rerender = (options = {}) => rerenderCalendarRoot(
+			container.querySelector<HTMLElement>(".calendar-blocks-root")!, options,
+		);
+		rerender({ stretchCalendar: true });
+		expect(href()).toBe(expected);
+		rerender({ showToday: false });
+		expect(href()).toBeUndefined();
+		rerender({ showToday: true });
+		expect(href()).toBe(expected);
+		renderCalendarSelection(container, selection.value, "ru", identity);
+		expect(href()).toBe(expected);
+		expect(random).not.toHaveBeenCalled();
+		vi.setSystemTime(new Date(2026, 9, 27, 0, 1));
+		rerender();
+		expect(container.querySelector(".calendar-blocks-today-marker")?.getAttribute("data-date"))
+			.toBe("2026.10.27");
+		expect(href()).toBe([marker1, marker2, marker3, marker4][
+			getTodayMarkerIndex({ year: 2026, month: 10, day: 27 }, identity.fileName, identity.calendarIndex)
+		]);
+	});
+
+	it.each(["2026.10.01", "2026.10.24 - 2026.10.29", "2026.10.26"])(
+		"marks today above selections using the standalone SVG: %s", (source) => {
+			const container = document.createElement("div");
+			const selection = parseDateInput(source);
+			if (!selection.ok) throw new Error(selection.message);
+			renderCalendarSelection(container, selection.value, "en-US");
+			const marker = container.querySelector(".calendar-blocks-today-marker")!;
+			expect(marker).not.toBeNull();
+			expect(marker.getAttribute("data-date")).toBe("2026.10.26");
+			expect(marker.getAttribute("href")).toMatch(/^data:image\/svg\+xml[,;]/);
+			expect(marker).toBe(container.querySelector("svg")!.lastElementChild);
+			expect(container.querySelector('[aria-current="date"]')?.textContent).toBe("26");
+			expect(container.querySelector("svg")?.getAttribute("aria-label")).toContain("today: 2026.10.26");
+			const root = container.querySelector<HTMLElement>(".calendar-blocks-root")!;
+			rerenderCalendarRoot(root, { showToday: false });
+			expect(container.querySelector(".calendar-blocks-today-marker")).toBeNull();
+			expect(container.querySelector('[aria-current="date"]')).toBeNull();
+			expect(container.querySelector("svg")?.getAttribute("aria-label")).not.toContain("today:");
+		},
+	);
+
+	it("uses the local date for today, including weekends, without adding missing months", () => {
+		vi.setSystemTime(new Date(2026, 9, 25, 23, 59));
+		const container = document.createElement("div");
+		const selection = parseDateInput("2025.10.25\n2026.10.01\n2026.12.01");
+		if (!selection.ok) throw new Error(selection.message);
+		renderCalendarSelection(container, selection.value, "ru");
+		expect(container.querySelectorAll(".calendar-blocks-today-marker")).toHaveLength(1);
+		expect(container.querySelector('[aria-current="date"]')?.classList).toContain("calendar-blocks-weekend");
+		expect(container.querySelector('[aria-current="date"]')?.closest("svg")?.getAttribute("aria-label"))
+			.toContain("сегодня: 2026.10.25");
+		const missingMonth = parseDateInput("2026.06.01 - 2026.12.01");
+		if (!missingMonth.ok) throw new Error(missingMonth.message);
+		renderCalendarSelection(container, missingMonth.value, "en-US");
+		expect(container.querySelectorAll(".calendar-blocks-calendar")).toHaveLength(2);
+		expect(container.querySelector(".calendar-blocks-today-marker")).toBeNull();
+	});
+
 	it("renders an accessible SVG calendar for a single date", () => {
 		const container = document.createElement("div");
 		renderCalendarSelection(

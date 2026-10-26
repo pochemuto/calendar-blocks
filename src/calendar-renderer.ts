@@ -10,6 +10,13 @@ import {
 	getDateEntries,
 } from "./date-parser";
 import { getEntryColors } from "./selection-palette";
+import todayMarkerUrl from "./assets/today-marker.svg";
+import todayMarker2Url from "./assets/today-marker-2.svg";
+import todayMarker3Url from "./assets/today-marker-3.svg";
+import todayMarker4Url from "./assets/today-marker-4.svg";
+import { getTodayMarkerIndex } from "./today-marker";
+
+const TODAY_MARKER_URLS = [todayMarkerUrl, todayMarker2Url, todayMarker3Url, todayMarker4Url];
 
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 const MINIMAL_SVG_WIDTH = 420;
@@ -25,12 +32,21 @@ export const STRETCHED_CALENDAR_CLASS =
 	"calendar-blocks-root--stretched";
 export interface CalendarRenderOptions {
 	stretchCalendar?: boolean;
+	showToday?: boolean;
+	fileName?: string;
+	/** Zero-based order of the date/dates block in the source note. */
+	calendarIndex?: number;
+	/** Override the derived seed for visual regression fixtures. */
+	markerSeed?: number;
 }
 
 interface CalendarRenderState {
 	container: HTMLElement;
 	selection: DateSelection;
 	locale: string;
+	fileName: string;
+	calendarIndex: number;
+	markerSeed?: number;
 }
 
 interface RangeSegmentGeometry {
@@ -52,6 +68,15 @@ export function renderCalendarSelection(
 ): void {
 	const safeLocale = getSupportedLocale(locale);
 	const display = createCalendarDisplay(selection);
+	const now = new Date();
+	// Today is the user's local civil date; calendar arithmetic remains UTC-based.
+	const currentDate = {
+		year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate(),
+	};
+	const today = options.showToday === false ? undefined : currentDate;
+	const fileName = options.fileName ?? "";
+	const calendarIndex = options.calendarIndex ?? 0;
+	const todayMarker = TODAY_MARKER_URLS[getTodayMarkerIndex(currentDate, fileName, calendarIndex, options.markerSeed)];
 	const root = createDiv();
 	const calendars = createDiv();
 
@@ -117,7 +142,7 @@ export function renderCalendarSelection(
 		}
 
 		row.append(
-			createMinimalCalendarSvg(month, selection, safeLocale),
+			createMinimalCalendarSvg(month, selection, safeLocale, today, todayMarker),
 		);
 	});
 
@@ -129,6 +154,9 @@ export function renderCalendarSelection(
 		container,
 		selection,
 		locale: safeLocale,
+		fileName,
+		calendarIndex,
+		markerSeed: options.markerSeed,
 	});
 }
 
@@ -171,7 +199,12 @@ export function rerenderCalendarRoot(
 		state.container,
 		state.selection,
 		state.locale,
-		options,
+		{
+			fileName: state.fileName,
+			calendarIndex: state.calendarIndex,
+			markerSeed: state.markerSeed,
+			...options,
+		},
 	);
 	return true;
 }
@@ -180,6 +213,8 @@ function createMinimalCalendarSvg(
 	month: CalendarMonthModel,
 	selection: DateSelection,
 	locale: string,
+	today?: CalendarDate,
+	todayMarker = todayMarkerUrl,
 ): SVGSVGElement {
 	const height =
 		MINIMAL_GRID_TOP +
@@ -187,11 +222,14 @@ function createMinimalCalendarSvg(
 		month.weekCount * MINIMAL_DAY_HEIGHT +
 		MINIMAL_BOTTOM_PADDING;
 	const monthTitle = formatMonthTitle(month.year, month.month, locale);
+	const todayInMonth = today?.year === month.year && today.month === month.month ? today : undefined;
+	const todayDescription = todayInMonth === undefined ? "" :
+		`; ${new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(0, "day")}: ${formatCalendarDate(todayInMonth)}`;
 	const accessibleLabel = formatAccessibleLabel(
 		monthTitle,
 		selection,
 		locale,
-	);
+	) + todayDescription;
 	const visibleDays = month.days.filter((day) => !day.isOutsideMonth);
 	const cellWidth = MINIMAL_GRID_WIDTH / 7;
 	const svg = createSvgElement("svg", {
@@ -285,8 +323,28 @@ function createMinimalCalendarSvg(
 			"data-date": formatCalendarDate(day.date),
 		});
 		text.textContent = String(day.date.day);
+		if (todayInMonth?.day === day.date.day) {
+			text.setAttribute("aria-current", "date");
+		}
 		svg.append(text);
 	});
+	const todayDay = visibleDays.find((day) => day.date.day === todayInMonth?.day);
+	if (todayDay !== undefined) {
+		const markerWidth = todayDay.highlight === "single" ? 76 : 60;
+		const markerHeight = todayDay.highlight === "single" ? 70 : 52;
+		// Keep the resource embedded in main.js so installation still needs only three files.
+		svg.append(createSvgElement("image", {
+			class: "calendar-blocks-today-marker",
+			href: todayMarker,
+			x: MINIMAL_GRID_LEFT + (todayDay.weekday + 0.5) * cellWidth - markerWidth / 2,
+			y: MINIMAL_GRID_TOP + MINIMAL_WEEKDAY_HEIGHT +
+				(todayDay.week + 0.5) * MINIMAL_DAY_HEIGHT + MINIMAL_HIGHLIGHT_OFFSET_Y - markerHeight / 2,
+			width: markerWidth,
+			height: markerHeight,
+			"aria-hidden": "true",
+			"data-date": formatCalendarDate(todayDay.date),
+		}));
+	}
 
 	return svg;
 }

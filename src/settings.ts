@@ -4,10 +4,12 @@ import type CalendarBlocksPlugin from "./main";
 
 export interface CalendarBlocksSettings {
 	stretchCalendar: boolean;
+	showToday: boolean;
 }
 
 export const DEFAULT_SETTINGS: CalendarBlocksSettings = {
 	stretchCalendar: false,
+	showToday: true,
 };
 
 export class CalendarBlocksSettingTab extends PluginSettingTab {
@@ -27,16 +29,25 @@ export class CalendarBlocksSettingTab extends PluginSettingTab {
 				key: "stretchCalendar",
 				defaultValue: DEFAULT_SETTINGS.stretchCalendar,
 			},
+		}, {
+			name: "Show today",
+			desc: "Mark today's date with a red hand-drawn outline.",
+			control: {
+				type: "toggle",
+				key: "showToday",
+				defaultValue: DEFAULT_SETTINGS.showToday,
+			},
 		}];
 	}
 
 	getControlValue(key: string): unknown {
-		return key === "stretchCalendar" ? this.plugin.settings.stretchCalendar : undefined;
+		return key === "stretchCalendar" || key === "showToday"
+			? this.plugin.settings[key] : undefined;
 	}
 
 	async setControlValue(key: string, value: unknown): Promise<void> {
-		if (key === "stretchCalendar" && typeof value === "boolean") {
-			await this.plugin.updateSettings({ ...this.plugin.settings, stretchCalendar: value });
+		if ((key === "stretchCalendar" || key === "showToday") && typeof value === "boolean") {
+			await this.plugin.updateSettings({ ...this.plugin.settings, [key]: value });
 		}
 	}
 
@@ -44,17 +55,19 @@ export class CalendarBlocksSettingTab extends PluginSettingTab {
 	// the definitions above for both rendering and search indexing.
 	display(): void {
 		const { containerEl } = this;
-		const [definition] = this.getSettingDefinitions();
 
 		containerEl.empty();
 
-		new Setting(containerEl)
-			.setName(definition.name)
-			.setDesc(definition.desc ?? "")
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.stretchCalendar)
-				.onChange((value) => this.setControlValue("stretchCalendar", value)),
-			);
+		for (const definition of this.getSettingDefinitions()) {
+			const key = definition.control.key;
+			new Setting(containerEl)
+				.setName(definition.name)
+				.setDesc(definition.desc ?? "")
+				.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings[key])
+						.onChange((value) => this.setControlValue(key, value)),
+				);
+		}
 	}
 }

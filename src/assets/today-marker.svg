@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 52">
+  <!-- A filled brush silhouette gives the open oval its uneven stroke width. -->
+  <path fill="#e53935" d="M 12 10
+    C 20 3 39 3 49 11
+    C 57 17 59 30 51 39
+    C 43 48 24 50 12 43
+    C 3 38 0 28 4 20
+    C 5 18 7 16 8 16
+    C 5 24 6 33 15 38
+    C 25 44 41 44 48 37
+    C 55 30 54 20 47 14
+    C 38 7 22 6 13 11
+    C 10 13 9 12 12 10 Z"/>
+</svg>

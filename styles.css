@@ -129,6 +129,10 @@
 	fill: var(--calendar-blocks-selection-color, var(--calendar-blocks-red));
 }
 
+.calendar-blocks-today-marker {
+	pointer-events: none;
+}
+
 .calendar-blocks-minimal-selected-day {
 	fill: var(--text-on-accent, #fff);
 	font-weight: var(--font-bold);

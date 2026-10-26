@@ -7,6 +7,7 @@ for (const visualCase of loadVisualCases()) {
 		test(`${visualCase.name} / ${theme}`, async ({ page }, testInfo) => {
 			const errors: string[] = [];
 			page.on("pageerror", (error) => errors.push(error.message));
+			await page.clock.setFixedTime(new Date("2026-10-26T12:00:00Z"));
 			await page.goto("/");
 			await page.evaluate(async ({ visualCase, theme }) => {
 				await window.renderVisualCase(visualCase, theme);
