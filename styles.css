@@ -81,6 +81,7 @@
 
 .calendar-blocks-calendar {
 	display: block;
+	align-self: start;
 	width: 100%;
 	height: auto;
 	overflow: visible;

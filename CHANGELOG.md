@@ -3,3 +3,4 @@
 - Release version 0.1.3.
 - Share one visual test case across all platforms and light and dark themes.
 - Correct the birthday label and add a conference to the README legend example.
+- Vertically align months so their titles appear at the same level.

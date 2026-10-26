@@ -20,6 +20,18 @@ for (const visualCase of loadVisualCases()) {
 			expect(await page.locator("#fixture").evaluate((element) =>
 				element.scrollWidth <= element.clientWidth,
 			)).toBe(true);
+			// Months with different week counts must share a heading baseline in each row.
+			expect(await page.locator(".calendar-blocks-calendars").evaluateAll((rows) =>
+				rows.every((row) => {
+					if (getComputedStyle(row).gridTemplateColumns.split(" ").length === 1) return true;
+					const calendars = row.querySelectorAll(":scope > .calendar-blocks-calendar");
+					if (calendars.length !== 2) return true;
+					const [first, second] = Array.from(calendars, (calendar) =>
+						calendar.querySelector(".calendar-blocks-month-title")!.getBoundingClientRect(),
+					);
+					return Math.abs(first.top - second.top) < 0.1;
+				}),
+			)).toBe(true);
 			await expectExactScreenshot(page.locator("#fixture"), `${visualCase.name}-${theme}.png`, testInfo);
 		});
 	}
