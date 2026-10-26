@@ -8,8 +8,6 @@
 	--calendar-blocks-break-width: 0.375rem;
 	--calendar-blocks-calendar-width: 12.75rem;
 	--calendar-blocks-gap: var(--size-4-2, 0.5rem);
-	--calendar-blocks-red: var(--color-red, #d32f2f);
-	--calendar-blocks-range-opacity: 0.16;
 
 	container-name: calendar-blocks;
 	container-type: inline-size;
@@ -68,9 +66,9 @@
 }
 
 .calendar-blocks-separator-wave {
-	opacity: 0.35;
+	opacity: var(--calendar-blocks-separator-opacity, 0.35);
 	fill: none;
-	stroke: var(--text-faint, var(--text-muted));
+	stroke: var(--calendar-blocks-separator-color, var(--text-faint, var(--text-muted)));
 	stroke-width: 1.5;
 	vector-effect: non-scaling-stroke;
 }
@@ -89,53 +87,68 @@
 }
 
 .calendar-blocks-background {
-	fill: var(--background-primary);
+	fill: var(--calendar-blocks-background-color, var(--background-primary));
 	stroke: none;
 }
 
 .calendar-blocks-month-title {
-	fill: var(--calendar-blocks-red);
+	fill: var(--calendar-blocks-month-title-color, var(--calendar-blocks-red, var(--color-red, #d32f2f)));
 	font-size: 26px;
 	text-transform: uppercase;
-	font-weight: var(--font-bold);
+	font-weight: var(--calendar-blocks-month-title-font-weight, var(--font-bold));
 }
 
 .calendar-blocks-weekday {
-	fill: var(--text-normal);
+	fill: var(--calendar-blocks-weekday-color, var(--text-normal));
 	font-size: 22px;
-	font-weight: var(--font-semibold, 600);
+	font-weight: var(--calendar-blocks-weekday-font-weight, var(--font-semibold, 600));
+}
+
+.calendar-blocks-weekday.calendar-blocks-weekend {
+	fill: var(--calendar-blocks-weekend-label-color, var(--text-muted));
 }
 
 .calendar-blocks-day {
-	fill: var(--text-normal);
+	--calendar-blocks-day-state-color: var(--calendar-blocks-day-color, var(--text-normal));
+	--calendar-blocks-day-state-weight: var(--calendar-blocks-day-font-weight, var(--font-medium));
+	fill: var(--calendar-blocks-day-state-color);
 	font-size: 24px;
-	font-weight: var(--font-medium);
+	font-weight: var(--calendar-blocks-day-state-weight);
 }
 
-.calendar-blocks-weekend {
-	fill: var(--text-muted);
+.calendar-blocks-day.calendar-blocks-weekend {
+	--calendar-blocks-day-state-color: var(--calendar-blocks-weekend-color, var(--text-muted));
 }
 
-.calendar-blocks-range-day {
-	fill: var(--text-normal);
+.calendar-blocks-day.calendar-blocks-range-day {
+	--calendar-blocks-day-state-color: var(--calendar-blocks-range-day-color, var(--text-normal));
+	--calendar-blocks-day-state-weight: var(--calendar-blocks-range-day-font-weight, var(--calendar-blocks-day-font-weight, var(--font-medium)));
+}
+
+.calendar-blocks-day.calendar-blocks-selected-day {
+	--calendar-blocks-day-state-color: var(--calendar-blocks-selected-day-color, var(--text-on-accent, #fff));
+	--calendar-blocks-day-state-weight: var(--calendar-blocks-selected-day-font-weight, var(--font-bold));
+}
+
+.calendar-blocks-today {
+	fill: var(--calendar-blocks-today-day-color, var(--calendar-blocks-day-state-color));
+	font-weight: var(--calendar-blocks-today-day-font-weight, var(--calendar-blocks-day-state-weight));
 }
 
 .calendar-blocks-range-segment {
-	fill: var(--calendar-blocks-range-color, var(--calendar-blocks-red));
-	fill-opacity: var(--calendar-blocks-range-opacity);
+	fill: var(--calendar-blocks-entry-color);
+	fill-opacity: var(--calendar-blocks-range-opacity, 0.16);
 }
 
 .calendar-blocks-selection-circle {
-	fill: var(--calendar-blocks-selection-color, var(--calendar-blocks-red));
+	fill: var(--calendar-blocks-entry-color);
+	opacity: var(--calendar-blocks-single-opacity, 1);
 }
 
 .calendar-blocks-today-marker {
+	fill: var(--calendar-blocks-today-marker-color, #e53935);
+	opacity: var(--calendar-blocks-today-marker-opacity, 1);
 	pointer-events: none;
-}
-
-.calendar-blocks-minimal-selected-day {
-	fill: var(--text-on-accent, #fff);
-	font-weight: var(--font-bold);
 }
 
 .calendar-blocks-root .calendar-blocks-legend {
@@ -147,7 +160,8 @@
 	margin: calc(var(--size-4-3, 0.75rem) / 2) 0 0;
 	padding: 0;
 	list-style: none;
-	color: var(--text-normal);
+	color: var(--calendar-blocks-legend-color, var(--text-normal));
+	font-weight: var(--calendar-blocks-legend-font-weight, inherit);
 	font-size: var(--font-small, 0.875rem);
 }
 
@@ -164,13 +178,14 @@
 	width: 0.65em;
 	height: 0.65em;
 	border-radius: 50%;
-	background-color: var(--calendar-blocks-selection-color);
+	background-color: var(--calendar-blocks-entry-color);
+	opacity: var(--calendar-blocks-single-opacity, 1);
 }
 
 .calendar-blocks-legend-marker--range {
 	width: var(--calendar-blocks-legend-marker-width);
 	border-radius: 999px;
-	opacity: var(--calendar-blocks-range-opacity);
+	opacity: var(--calendar-blocks-range-opacity, 0.16);
 }
 
 .calendar-blocks-legend-label {
@@ -219,4 +234,325 @@
 
 .calendar-blocks-separator--between-rows .calendar-blocks-separator-wave--horizontal {
 	display: block;
+}
+
+/* Public palette slots. Fallbacks here allow overrides inherited from any ancestor. */
+.calendar-blocks-palette-1.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-1, var(--calendar-blocks-palette-1, var(--calendar-blocks-red, var(--color-red, #d32f2f))));
+}
+
+.calendar-blocks-palette-1.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-1, var(--calendar-blocks-palette-1, var(--calendar-blocks-red, var(--color-red, #d32f2f))));
+}
+
+.calendar-blocks-palette-2.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-2, var(--calendar-blocks-palette-2, #2563eb));
+}
+
+.calendar-blocks-palette-2.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-2, var(--calendar-blocks-palette-2, #2563eb));
+}
+
+.calendar-blocks-palette-3.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-3, var(--calendar-blocks-palette-3, #16a34a));
+}
+
+.calendar-blocks-palette-3.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-3, var(--calendar-blocks-palette-3, #16a34a));
+}
+
+.calendar-blocks-palette-4.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-4, var(--calendar-blocks-palette-4, #ea580c));
+}
+
+.calendar-blocks-palette-4.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-4, var(--calendar-blocks-palette-4, #ea580c));
+}
+
+.calendar-blocks-palette-5.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-5, var(--calendar-blocks-palette-5, #9333ea));
+}
+
+.calendar-blocks-palette-5.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-5, var(--calendar-blocks-palette-5, #9333ea));
+}
+
+.calendar-blocks-palette-6.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-6, var(--calendar-blocks-palette-6, #0891b2));
+}
+
+.calendar-blocks-palette-6.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-6, var(--calendar-blocks-palette-6, #0891b2));
+}
+
+.calendar-blocks-palette-7.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-7, var(--calendar-blocks-palette-7, #db2777));
+}
+
+.calendar-blocks-palette-7.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-7, var(--calendar-blocks-palette-7, #db2777));
+}
+
+.calendar-blocks-palette-8.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-8, var(--calendar-blocks-palette-8, #ca8a04));
+}
+
+.calendar-blocks-palette-8.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-8, var(--calendar-blocks-palette-8, #ca8a04));
+}
+
+.calendar-blocks-palette-9.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-9, var(--calendar-blocks-palette-9, #4f46e5));
+}
+
+.calendar-blocks-palette-9.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-9, var(--calendar-blocks-palette-9, #4f46e5));
+}
+
+.calendar-blocks-palette-10.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-10, var(--calendar-blocks-palette-10, #0d9488));
+}
+
+.calendar-blocks-palette-10.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-10, var(--calendar-blocks-palette-10, #0d9488));
+}
+
+.calendar-blocks-palette-11.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-11, var(--calendar-blocks-palette-11, #e11d48));
+}
+
+.calendar-blocks-palette-11.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-11, var(--calendar-blocks-palette-11, #e11d48));
+}
+
+.calendar-blocks-palette-12.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-12, var(--calendar-blocks-palette-12, #65a30d));
+}
+
+.calendar-blocks-palette-12.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-12, var(--calendar-blocks-palette-12, #65a30d));
+}
+
+.calendar-blocks-palette-13.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-13, var(--calendar-blocks-palette-13, #0284c7));
+}
+
+.calendar-blocks-palette-13.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-13, var(--calendar-blocks-palette-13, #0284c7));
+}
+
+.calendar-blocks-palette-14.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-14, var(--calendar-blocks-palette-14, #c026d3));
+}
+
+.calendar-blocks-palette-14.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-14, var(--calendar-blocks-palette-14, #c026d3));
+}
+
+.calendar-blocks-palette-15.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-15, var(--calendar-blocks-palette-15, #d97706));
+}
+
+.calendar-blocks-palette-15.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-15, var(--calendar-blocks-palette-15, #d97706));
+}
+
+.calendar-blocks-palette-16.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-16, var(--calendar-blocks-palette-16, #7c3aed));
+}
+
+.calendar-blocks-palette-16.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-16, var(--calendar-blocks-palette-16, #7c3aed));
+}
+
+.calendar-blocks-palette-17.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-17, var(--calendar-blocks-palette-17, #059669));
+}
+
+.calendar-blocks-palette-17.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-17, var(--calendar-blocks-palette-17, #059669));
+}
+
+.calendar-blocks-palette-18.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-18, var(--calendar-blocks-palette-18, #dc2626));
+}
+
+.calendar-blocks-palette-18.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-18, var(--calendar-blocks-palette-18, #dc2626));
+}
+
+.calendar-blocks-palette-19.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-19, var(--calendar-blocks-palette-19, #475569));
+}
+
+.calendar-blocks-palette-19.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-19, var(--calendar-blocks-palette-19, #475569));
+}
+
+.calendar-blocks-palette-20.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-20, var(--calendar-blocks-palette-20, #a16207));
+}
+
+.calendar-blocks-palette-20.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-20, var(--calendar-blocks-palette-20, #a16207));
+}
+
+.calendar-blocks-palette-21.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-21, var(--calendar-blocks-palette-21, #1e40af));
+}
+
+.calendar-blocks-palette-21.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-21, var(--calendar-blocks-palette-21, #1e40af));
+}
+
+.calendar-blocks-palette-22.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-22, var(--calendar-blocks-palette-22, #166534));
+}
+
+.calendar-blocks-palette-22.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-22, var(--calendar-blocks-palette-22, #166534));
+}
+
+.calendar-blocks-palette-23.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-23, var(--calendar-blocks-palette-23, #9a3412));
+}
+
+.calendar-blocks-palette-23.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-23, var(--calendar-blocks-palette-23, #9a3412));
+}
+
+.calendar-blocks-palette-24.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-24, var(--calendar-blocks-palette-24, #6b21a8));
+}
+
+.calendar-blocks-palette-24.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-24, var(--calendar-blocks-palette-24, #6b21a8));
+}
+
+.calendar-blocks-palette-25.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-25, var(--calendar-blocks-palette-25, #155e75));
+}
+
+.calendar-blocks-palette-25.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-25, var(--calendar-blocks-palette-25, #155e75));
+}
+
+.calendar-blocks-palette-26.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-26, var(--calendar-blocks-palette-26, #9d174d));
+}
+
+.calendar-blocks-palette-26.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-26, var(--calendar-blocks-palette-26, #9d174d));
+}
+
+.calendar-blocks-palette-27.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-27, var(--calendar-blocks-palette-27, #854d0e));
+}
+
+.calendar-blocks-palette-27.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-27, var(--calendar-blocks-palette-27, #854d0e));
+}
+
+.calendar-blocks-palette-28.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-28, var(--calendar-blocks-palette-28, #3730a3));
+}
+
+.calendar-blocks-palette-28.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-28, var(--calendar-blocks-palette-28, #3730a3));
+}
+
+.calendar-blocks-palette-29.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-29, var(--calendar-blocks-palette-29, #115e59));
+}
+
+.calendar-blocks-palette-29.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-29, var(--calendar-blocks-palette-29, #115e59));
+}
+
+.calendar-blocks-palette-30.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-30, var(--calendar-blocks-palette-30, #9f1239));
+}
+
+.calendar-blocks-palette-30.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-30, var(--calendar-blocks-palette-30, #9f1239));
+}
+
+.calendar-blocks-palette-31.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-31, var(--calendar-blocks-palette-31, #3f6212));
+}
+
+.calendar-blocks-palette-31.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-31, var(--calendar-blocks-palette-31, #3f6212));
+}
+
+.calendar-blocks-palette-32.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-32, var(--calendar-blocks-palette-32, #075985));
+}
+
+.calendar-blocks-palette-32.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-32, var(--calendar-blocks-palette-32, #075985));
+}
+
+.calendar-blocks-palette-33.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-33, var(--calendar-blocks-palette-33, #86198f));
+}
+
+.calendar-blocks-palette-33.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-33, var(--calendar-blocks-palette-33, #86198f));
+}
+
+.calendar-blocks-palette-34.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-34, var(--calendar-blocks-palette-34, #92400e));
+}
+
+.calendar-blocks-palette-34.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-34, var(--calendar-blocks-palette-34, #92400e));
+}
+
+.calendar-blocks-palette-35.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-35, var(--calendar-blocks-palette-35, #5b21b6));
+}
+
+.calendar-blocks-palette-35.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-35, var(--calendar-blocks-palette-35, #5b21b6));
+}
+
+.calendar-blocks-palette-36.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-36, var(--calendar-blocks-palette-36, #065f46));
+}
+
+.calendar-blocks-palette-36.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-36, var(--calendar-blocks-palette-36, #065f46));
+}
+
+.calendar-blocks-palette-37.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-37, var(--calendar-blocks-palette-37, #991b1b));
+}
+
+.calendar-blocks-palette-37.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-37, var(--calendar-blocks-palette-37, #991b1b));
+}
+
+.calendar-blocks-palette-38.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-38, var(--calendar-blocks-palette-38, #64748b));
+}
+
+.calendar-blocks-palette-38.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-38, var(--calendar-blocks-palette-38, #64748b));
+}
+
+.calendar-blocks-palette-39.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-39, var(--calendar-blocks-palette-39, #a855f7));
+}
+
+.calendar-blocks-palette-39.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-39, var(--calendar-blocks-palette-39, #a855f7));
+}
+
+.calendar-blocks-palette-40.calendar-blocks-single-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-single-color-40, var(--calendar-blocks-palette-40, #06b6d4));
+}
+
+.calendar-blocks-palette-40.calendar-blocks-range-highlight {
+	--calendar-blocks-entry-color: var(--calendar-blocks-range-color-40, var(--calendar-blocks-palette-40, #06b6d4));
 }

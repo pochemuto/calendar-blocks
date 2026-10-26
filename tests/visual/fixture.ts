@@ -11,6 +11,11 @@ declare global {
 }
 
 window.renderVisualCase = async (visualCase, theme) => {
+	document.getElementById("snippet")?.remove();
+	const snippet = document.createElement("style");
+	snippet.id = "snippet";
+	snippet.textContent = visualCase.css ?? "";
+	document.head.append(snippet);
 	document.body.className = `theme-${theme}`;
 	const fixture = document.querySelector<HTMLElement>("#fixture")!;
 	const container = document.querySelector<HTMLElement>("#calendar")!;

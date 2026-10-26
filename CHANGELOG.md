@@ -6,3 +6,4 @@
 - Vertically align months so their titles appear at the same level.
 - Add a marker for the current day.
 - Support inline configuration
+- Support calendar customization through Obsidian CSS snippets, including colors, text weight, highlights, and today’s marker.

@@ -143,6 +143,12 @@ today no-stretch Feb 14
 Properties override the global settings for this block. Omitted properties use
 the global settings; if a property repeats, the last value wins.
 
+## CSS Snippets
+
+Customize calendar colors, text weight, highlights, and today's marker with
+Obsidian CSS snippets. See the [CSS customization guide](docs/css-snippets.md)
+for supported variables, styling classes, and examples with screenshots.
+
 ## Settings
 
 Open **Settings → Calendar Blocks**:

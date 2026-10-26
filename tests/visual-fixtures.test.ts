@@ -21,7 +21,13 @@ describe("Markdown visual cases", () => {
 			width: 280, locale: "ru", stretch: true,
 			showToday: undefined,
 			markerSeed: undefined,
+			css: undefined,
 		});
+	});
+	it("reads CSS snippets and rejects non-text CSS", () => {
+		expect(parseVisualCase(`---\ncss: |\n  body { --calendar-blocks-palette-1: blue; }\n---\n${input}\n${screenshots("case")}`, "case.md").css)
+			.toContain("--calendar-blocks-palette-1: blue");
+		expect(() => parseVisualCase(`---\ncss: 1\n---\n${input}\n${screenshots("case")}`, "case.md")).toThrow("css must be a string");
 	});
 	it("allows empty frontmatter with default settings", () => {
 		expect(parseVisualCase(`---\n---\n\n${input}\n\n${screenshots("case")}`, "case.md"))

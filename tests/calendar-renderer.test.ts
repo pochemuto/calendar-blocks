@@ -13,12 +13,12 @@ import {
 } from "../src/calendar-renderer";
 
 import { parseDateInput } from "../src/date-parser";
-import { SELECTION_COLORS } from "../src/selection-palette";
+import { TODAY_MARKER_PATHS } from "../src/today-marker-paths";
 import { getTodayMarkerIndex } from "../src/today-marker";
-import marker1 from "../src/assets/today-marker.svg";
-import marker2 from "../src/assets/today-marker-2.svg";
-import marker3 from "../src/assets/today-marker-3.svg";
-import marker4 from "../src/assets/today-marker-4.svg";
+
+const PALETTE_CLASSES = Array.from({ length: 40 }, (_, index) => `calendar-blocks-palette-${index + 1}`);
+const paletteClass = (element: Element | null | undefined) =>
+	Array.from(element?.classList ?? []).find((name) => /^calendar-blocks-palette-\d+$/.test(name));
 
 describe("renderCalendarSelection", () => {
 	it.each([true, false])("keeps local overrides across global settings changes: %s", (enabled) => {
@@ -49,14 +49,14 @@ describe("renderCalendarSelection", () => {
 		vi.restoreAllMocks();
 	});
 
-	it.each([[7, marker1], [0, marker2], [1, marker3], [4, marker4]] as const)("reproduces marker variant with fixed seed %i", (seed, marker) => {
+	it.each([[7, 0], [0, 1], [1, 2], [4, 3]] as const)("reproduces marker variant with fixed seed %i", (seed, marker) => {
 		const selection = parseDateInput("2026.10.26");
 		if (!selection.ok) throw new Error(selection.message);
 		for (let repeat = 0; repeat < 2; repeat++) {
 			const container = document.createElement("div");
 			renderCalendarSelection(container, selection.value, "en-US", { markerSeed: seed });
-			expect(container.querySelector(".calendar-blocks-today-marker")?.getAttribute("href"))
-				.toBe(marker);
+			expect(container.querySelector(".calendar-blocks-today-marker")?.querySelector("path")?.getAttribute("d"))
+				.toBe(TODAY_MARKER_PATHS[marker].d);
 		}
 	});
 
@@ -67,34 +67,34 @@ describe("renderCalendarSelection", () => {
 		if (!selection.ok) throw new Error(selection.message);
 		const identity = { fileName: "Vacation.md", calendarIndex: 3 };
 		renderCalendarSelection(container, selection.value, "en-US", identity);
-		const href = () => container.querySelector(".calendar-blocks-today-marker")?.getAttribute("href");
-		const expected = [marker1, marker2, marker3, marker4][
+		const markerPath = () => container.querySelector(".calendar-blocks-today-marker")?.querySelector("path")?.getAttribute("d");
+		const expected = TODAY_MARKER_PATHS[
 			getTodayMarkerIndex({ year: 2026, month: 10, day: 26 }, identity.fileName, identity.calendarIndex)
-		];
-		expect(href()).toBe(expected);
+		].d;
+		expect(markerPath()).toBe(expected);
 		const rerender = (options = {}) => rerenderCalendarRoot(
 			container.querySelector<HTMLElement>(".calendar-blocks-root")!, options,
 		);
 		rerender({ stretchCalendar: true });
-		expect(href()).toBe(expected);
+		expect(markerPath()).toBe(expected);
 		rerender({ showToday: false });
-		expect(href()).toBeUndefined();
+		expect(markerPath()).toBeUndefined();
 		rerender({ showToday: true });
-		expect(href()).toBe(expected);
+		expect(markerPath()).toBe(expected);
 		renderCalendarSelection(container, selection.value, "ru", identity);
-		expect(href()).toBe(expected);
+		expect(markerPath()).toBe(expected);
 		expect(random).not.toHaveBeenCalled();
 		vi.setSystemTime(new Date(2026, 9, 27, 0, 1));
 		rerender();
 		expect(container.querySelector(".calendar-blocks-today-marker")?.getAttribute("data-date"))
 			.toBe("2026.10.27");
-		expect(href()).toBe([marker1, marker2, marker3, marker4][
+		expect(markerPath()).toBe(TODAY_MARKER_PATHS[
 			getTodayMarkerIndex({ year: 2026, month: 10, day: 27 }, identity.fileName, identity.calendarIndex)
-		]);
+		].d);
 	});
 
 	it.each(["2026.10.01", "2026.10.24 - 2026.10.29", "2026.10.26"])(
-		"marks today above selections using the standalone SVG: %s", (source) => {
+		"marks today above selections using inline SVG contours: %s", (source) => {
 			const container = document.createElement("div");
 			const selection = parseDateInput(source);
 			if (!selection.ok) throw new Error(selection.message);
@@ -102,7 +102,9 @@ describe("renderCalendarSelection", () => {
 			const marker = container.querySelector(".calendar-blocks-today-marker")!;
 			expect(marker).not.toBeNull();
 			expect(marker.getAttribute("data-date")).toBe("2026.10.26");
-			expect(marker.getAttribute("href")).toMatch(/^data:image\/svg\+xml[,;]/);
+			expect(marker.querySelector("path")?.getAttribute("d")).toMatch(/^M /);
+			expect(marker.querySelector("path")?.hasAttribute("fill")).toBe(false);
+			expect(container.querySelector(".calendar-blocks-today")?.getAttribute("aria-current")).toBe("date");
 			expect(marker).toBe(container.querySelector("svg")!.lastElementChild);
 			expect(container.querySelector('[aria-current="date"]')?.textContent).toBe("26");
 			expect(container.querySelector("svg")?.getAttribute("aria-label")).toContain("today: 2026.10.26");
@@ -155,9 +157,8 @@ describe("renderCalendarSelection", () => {
 				'.calendar-blocks-selection-circle[data-date="2025.07.27"]',
 			),
 		).not.toBeNull();
-		expect(
-			container.querySelector(".calendar-blocks-root--minimal"),
-		).not.toBeNull();
+		expect(container.querySelector('[class*="minimal"]')).toBeNull();
+		expect(container.querySelector("[style]")).toBeNull();
 		expect(svg?.querySelector(".calendar-blocks-grid-line")).toBeNull();
 	});
 
@@ -173,10 +174,10 @@ describe("renderCalendarSelection", () => {
 		);
 
 		const svg = container.querySelector(
-			"svg.calendar-blocks-calendar--minimal",
+			"svg.calendar-blocks-calendar",
 		);
 		expect(
-			container.querySelector(".calendar-blocks-root--minimal"),
+			container.querySelector(".calendar-blocks-root"),
 		).not.toBeNull();
 		expect(svg?.querySelector(".calendar-blocks-grid-line")).toBeNull();
 		expect(svg?.querySelector(".calendar-blocks-selection-outline")).toBeNull();
@@ -186,7 +187,7 @@ describe("renderCalendarSelection", () => {
 			),
 		).not.toBeNull();
 		const selectedDay = svg?.querySelector(
-				'.calendar-blocks-minimal-selected-day[data-date="2025.07.27"]',
+				'.calendar-blocks-selected-day[data-date="2025.07.27"]',
 			);
 		const selectionCircle = svg?.querySelector(
 			'.calendar-blocks-selection-circle[data-date="2025.07.27"]',
@@ -196,12 +197,12 @@ describe("renderCalendarSelection", () => {
 			Number(selectedDay?.getAttribute("y")) - 2,
 		);
 		expect(
-			svg?.querySelector(".calendar-blocks-minimal-month-title")
+			svg?.querySelector(".calendar-blocks-month-title")
 				?.textContent,
 		).toBe("ИЮЛЬ");
 		expect(
 			Array.from(
-				svg?.querySelectorAll(".calendar-blocks-minimal-weekday") ?? [],
+				svg?.querySelectorAll(".calendar-blocks-weekday") ?? [],
 				(element) => element.textContent,
 			),
 		).toEqual(["П", "В", "С", "Ч", "П", "С", "В"]);
@@ -226,7 +227,7 @@ describe("renderCalendarSelection", () => {
 			'.calendar-blocks-range-segment[data-start-date="2025.07.21"]',
 		);
 		const firstDay = container.querySelector<SVGTextElement>(
-			'.calendar-blocks-minimal-day[data-date="2025.07.21"]',
+			'.calendar-blocks-day[data-date="2025.07.21"]',
 		);
 		const segmentStartY = Number(
 			segment?.getAttribute("d")?.match(/^M \S+ (\S+)/)?.[1],
@@ -261,7 +262,7 @@ describe("renderCalendarSelection", () => {
 			container.querySelector(".calendar-blocks-root")?.classList,
 		).toContain(STRETCHED_CALENDAR_CLASS);
 		expect(
-			container.querySelector(".calendar-blocks-calendar--minimal"),
+			container.querySelector(".calendar-blocks-calendar"),
 		).not.toBeNull();
 	});
 
@@ -527,7 +528,7 @@ describe("multiple selections", () => {
 		const circle = container.querySelector('.calendar-blocks-selection-circle[data-date="2025.07.22"]')!;
 		for (const path of Array.from(paths)) expect(path.compareDocumentPosition(circle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 		expect(container.querySelectorAll('.calendar-blocks-day[data-date="2025.07.22"]')).toHaveLength(1);
-		expect(container.querySelector('.calendar-blocks-minimal-selected-day[data-date="2025.07.22"]')).not.toBeNull();
+		expect(container.querySelector('.calendar-blocks-selected-day[data-date="2025.07.22"]')).not.toBeNull();
 		expect(container.querySelector("svg")?.getAttribute("aria-label")).toContain("July 24, 2025");
 	});
 	it("adds chronological months and marks only actual omissions, including between rows", () => {
@@ -556,10 +557,10 @@ describe("selection colors", () => {
 		const circles = container.querySelectorAll<SVGCircleElement>(".calendar-blocks-selection-circle");
 		const segments = container.querySelectorAll<SVGPathElement>(".calendar-blocks-range-segment");
 		expect(circles).toHaveLength(2);
-		expect(circles[0].style.getPropertyValue("--calendar-blocks-selection-color")).toBe(SELECTION_COLORS[0]);
-		expect(circles[1].style.getPropertyValue("--calendar-blocks-selection-color")).toBe(SELECTION_COLORS[1]);
+		expect(paletteClass(circles[0])).toBe(PALETTE_CLASSES[0]);
+		expect(paletteClass(circles[1])).toBe(PALETTE_CLASSES[1]);
 		for (const segment of Array.from(segments)) {
-			expect(segment.style.getPropertyValue("--calendar-blocks-range-color")).toBe(SELECTION_COLORS[0]);
+			expect(paletteClass(segment)).toBe(PALETTE_CLASSES[0]);
 			for (const circle of Array.from(circles)) {
 				expect(segment.compareDocumentPosition(circle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 			}
@@ -569,26 +570,26 @@ describe("selection colors", () => {
 		const singles = ["2026.07.10", "2026.06.10", "2026.06.11"];
 		const ranges = ["2026.06.08 - 2026.06.12", "2026.06.10 - 2026.06.11", "2026.07.01 - 2026.07.03"];
 		const mixed = render(singles.flatMap((single, index) => [single, ranges[index]]).join("\n"));
-		function colors(container: HTMLElement, selector: string, property: string): string[] {
+		function colors(container: HTMLElement, selector: string): string[] {
 			return Array.from(container.querySelectorAll<SVGElement>(selector), (shape) =>
-				shape.style.getPropertyValue(property),
+				paletteClass(shape)!,
 			);
 		}
-		for (const [lines, selector, property] of [
-			[singles, ".calendar-blocks-selection-circle", "--calendar-blocks-selection-color"],
-			[ranges, ".calendar-blocks-range-segment", "--calendar-blocks-range-color"],
+		for (const [lines, selector] of [
+			[singles, ".calendar-blocks-selection-circle"],
+			[ranges, ".calendar-blocks-range-segment"],
 		] as const) {
-			expect(colors(mixed, selector, property)).toEqual(colors(render(lines.join("\n")), selector, property));
+			expect(colors(mixed, selector)).toEqual(colors(render(lines.join("\n")), selector));
 		}
 	});
 	it("assigns collapsed ranges to the single-date pool without advancing range colors", () => {
 		const container = render("2026.06.05\n2026.06.10 - 2026.06.10\n2026.06.11 - 2026.06.12\n2026.06.15\n2026.06.16 - 2026.06.17");
 		expect(Array.from(container.querySelectorAll<SVGElement>(".calendar-blocks-selection-circle"),
-			(circle) => circle.style.getPropertyValue("--calendar-blocks-selection-color")))
-			.toEqual(SELECTION_COLORS.slice(0, 3));
+			(circle) => paletteClass(circle)))
+			.toEqual(PALETTE_CLASSES.slice(0, 3));
 		expect(Array.from(container.querySelectorAll<SVGElement>(".calendar-blocks-range-segment"),
-			(segment) => segment.style.getPropertyValue("--calendar-blocks-range-color")))
-			.toEqual(SELECTION_COLORS.slice(0, 2));
+			(segment) => paletteClass(segment)))
+			.toEqual(PALETTE_CLASSES.slice(0, 2));
 	});
 	it("keeps range colors across weeks and months, regardless of month order", () => {
 		const container = render("2026.10.01\n2026.06.25 - 2026.07.10\n2026.06.26 - 2026.06.28");
@@ -597,15 +598,15 @@ describe("selection colors", () => {
 			expect(calendars).toHaveLength(3);
 			const june = calendars[0].querySelectorAll<SVGPathElement>(".calendar-blocks-range-segment");
 			expect(june).toHaveLength(3);
-			expect(Array.from(june, (path) => path.style.getPropertyValue("--calendar-blocks-range-color")))
-				.toEqual([SELECTION_COLORS[0], SELECTION_COLORS[0], SELECTION_COLORS[1]]);
+			expect(Array.from(june, (path) => paletteClass(path)))
+				.toEqual([PALETTE_CLASSES[0], PALETTE_CLASSES[0], PALETTE_CLASSES[1]]);
 			const july = calendars[1].querySelectorAll<SVGPathElement>(".calendar-blocks-range-segment");
 			expect(july).toHaveLength(2);
 			for (const path of Array.from(july)) {
-				expect(path.style.getPropertyValue("--calendar-blocks-range-color")).toBe(SELECTION_COLORS[0]);
+				expect(paletteClass(path)).toBe(PALETTE_CLASSES[0]);
 			}
-			expect(calendars[2].querySelector<SVGCircleElement>("circle")?.style.getPropertyValue("--calendar-blocks-selection-color"))
-				.toBe(SELECTION_COLORS[0]);
+			expect(paletteClass(calendars[2].querySelector("circle")))
+				.toBe(PALETTE_CLASSES[0]);
 		}
 		expectColors();
 		rerenderCalendarRoot(container.querySelector<HTMLElement>(".calendar-blocks-root")!, { stretchCalendar: true });
@@ -619,10 +620,10 @@ describe("selection colors", () => {
 		const shapes = container.querySelectorAll<SVGElement>(".calendar-blocks-range-segment, .calendar-blocks-selection-circle");
 		expect(shapes).toHaveLength(40);
 		const colors = Array.from(shapes, (shape) =>
-			shape.style.getPropertyValue("--calendar-blocks-range-color") || shape.style.getPropertyValue("--calendar-blocks-selection-color"),
+			paletteClass(shape),
 		);
 		expect(new Set(colors).size).toBe(40);
-		expect(colors).toEqual(expect.arrayContaining([...SELECTION_COLORS]));
+		expect(colors).toEqual(expect.arrayContaining([...PALETTE_CLASSES]));
 	});
 });
 
@@ -650,7 +651,7 @@ describe("day label readability", () => {
 		expect(unselected?.classList).toContain("calendar-blocks-weekend");
 		expect(unselected?.classList).not.toContain("calendar-blocks-range-day");
 		const single = container.querySelector('.calendar-blocks-day[data-date="2026.04.01"]');
-		expect(single?.classList).toContain("calendar-blocks-minimal-selected-day");
+		expect(single?.classList).toContain("calendar-blocks-selected-day");
 		expect(single?.classList).not.toContain("calendar-blocks-range-day");
 	});
 });
@@ -677,16 +678,16 @@ describe("legend", () => {
 			const markers = legend.querySelectorAll<HTMLElement>(".calendar-blocks-legend-marker");
 			expect(markers[0].classList).toContain("calendar-blocks-legend-marker--range");
 			expect(markers[1].classList).not.toContain("calendar-blocks-legend-marker--range");
-			expect(Array.from(markers, (marker) => marker.style.getPropertyValue("--calendar-blocks-selection-color")))
-				.toEqual([SELECTION_COLORS[0], SELECTION_COLORS[2]]);
+			expect(Array.from(markers, (marker) => paletteClass(marker)))
+				.toEqual([PALETTE_CLASSES[0], PALETTE_CLASSES[2]]);
 			for (const marker of Array.from(markers)) {
 				expect(marker.getAttribute("aria-hidden")).toBe("true");
 				expect(marker.nextElementSibling?.classList).toContain("calendar-blocks-legend-label");
 			}
 			const range = container.querySelector<SVGPathElement>(".calendar-blocks-range-segment")!;
-			expect(range.style.getPropertyValue("--calendar-blocks-range-color")).toBe(SELECTION_COLORS[0]);
+			expect(paletteClass(range)).toBe(PALETTE_CLASSES[0]);
 			const birthday = container.querySelector<SVGCircleElement>('.calendar-blocks-selection-circle[data-date="2026.05.10"]')!;
-			expect(birthday.style.getPropertyValue("--calendar-blocks-selection-color")).toBe(SELECTION_COLORS[2]);
+			expect(paletteClass(birthday)).toBe(PALETTE_CLASSES[2]);
 		}
 		checkLegend();
 		rerenderCalendarRoot(container.querySelector<HTMLElement>(".calendar-blocks-root")!, { stretchCalendar: true });

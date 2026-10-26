@@ -110,6 +110,11 @@ The source note creation year is fixed at 2026, and the browser clock is fixed a
 October 26, 2026, 12:00 UTC. Marker randomness uses a fixed seed of 7 for
 each fixture, so today's marker produces stable screenshots. Set `markerSeed` in
 fixture frontmatter to cover another variant reproducibly.
+
+Use a multiline `css: |` frontmatter field to test a CSS snippet. The fixture
+inserts it after the plugin stylesheet and removes it before rendering the next
+case. Keep the shared input and both theme screenshot embeds in the same Markdown
+file, including for custom CSS cases.
 To add a scenario in both themes, add
 `<name>.md` with the input, settings and image links for all platforms and themes,
 then run `npm run test:visual:update`. There is no separate case list in code.

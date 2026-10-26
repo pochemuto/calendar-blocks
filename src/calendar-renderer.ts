@@ -9,15 +9,12 @@ import {
 	formatCalendarDate,
 	getDateEntries,
 } from "./date-parser";
-import { getEntryColors } from "./selection-palette";
-import todayMarkerUrl from "./assets/today-marker.svg";
-import todayMarker2Url from "./assets/today-marker-2.svg";
-import todayMarker3Url from "./assets/today-marker-3.svg";
-import todayMarker4Url from "./assets/today-marker-4.svg";
+import { getEntryPaletteClasses } from "./selection-palette";
+import { TODAY_MARKER_PATHS } from "./today-marker-paths";
 import { getTodayMarkerIndex } from "./today-marker";
 import type { BlockOverrides, BooleanBlockProperties } from "./block-properties";
 
-const TODAY_MARKER_URLS = [todayMarkerUrl, todayMarker2Url, todayMarker3Url, todayMarker4Url];
+
 
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 const MINIMAL_SVG_WIDTH = 420;
@@ -51,7 +48,7 @@ interface CalendarRenderState {
 }
 
 interface RangeSegmentGeometry {
-	color: string;
+	paletteClass: string;
 	gridLeft: number;
 	gridTop: number;
 	weekdayHeight: number;
@@ -78,12 +75,11 @@ export function renderCalendarSelection(
 	const today = options.showToday === false ? undefined : currentDate;
 	const fileName = options.fileName ?? "";
 	const calendarIndex = options.calendarIndex ?? 0;
-	const todayMarker = TODAY_MARKER_URLS[getTodayMarkerIndex(currentDate, fileName, calendarIndex, options.markerSeed)];
+	const todayMarker = TODAY_MARKER_PATHS[getTodayMarkerIndex(currentDate, fileName, calendarIndex, options.markerSeed)];
 	const root = createDiv();
 	const calendars = createDiv();
 
 	root.className = "calendar-blocks-root";
-	root.classList.add("calendar-blocks-root--minimal");
 	root.classList.toggle(
 		STRETCHED_CALENDAR_CLASS,
 		options.stretchCalendar === true,
@@ -167,7 +163,7 @@ function createLegend(selection: DateSelection): HTMLUListElement | null {
 	const legend = createEl("ul");
 	legend.className = "calendar-blocks-legend";
 	const entries = getDateEntries(selection);
-	const colors = getEntryColors(entries);
+	const paletteClasses = getEntryPaletteClasses(entries);
 	entries.forEach((entry, index) => {
 		if (!entry.label) return;
 		const item = createEl("li");
@@ -178,7 +174,7 @@ function createLegend(selection: DateSelection): HTMLUListElement | null {
 			marker.classList.add("calendar-blocks-legend-marker--range");
 		}
 		marker.setAttribute("aria-hidden", "true");
-		marker.style.setProperty("--calendar-blocks-selection-color", colors[index]);
+		marker.classList.add(paletteClasses[index], `calendar-blocks-${entry.kind}-highlight`);
 		const label = createSpan();
 		label.className = "calendar-blocks-legend-label";
 		label.textContent = entry.label;
@@ -218,7 +214,7 @@ function createMinimalCalendarSvg(
 	selection: DateSelection,
 	locale: string,
 	today?: CalendarDate,
-	todayMarker = todayMarkerUrl,
+	todayMarker: (typeof TODAY_MARKER_PATHS)[number] = TODAY_MARKER_PATHS[0],
 ): SVGSVGElement {
 	const height =
 		MINIMAL_GRID_TOP +
@@ -237,7 +233,7 @@ function createMinimalCalendarSvg(
 	const visibleDays = month.days.filter((day) => !day.isOutsideMonth);
 	const cellWidth = MINIMAL_GRID_WIDTH / 7;
 	const svg = createSvgElement("svg", {
-		class: "calendar-blocks-calendar calendar-blocks-calendar--minimal",
+		class: "calendar-blocks-calendar",
 		viewBox: `0 0 ${MINIMAL_SVG_WIDTH} ${height}`,
 		preserveAspectRatio: "xMidYMid meet",
 		role: "img",
@@ -251,8 +247,7 @@ function createMinimalCalendarSvg(
 
 	svg.append(
 		createSvgElement("rect", {
-			class:
-				"calendar-blocks-background calendar-blocks-minimal-background",
+			class: "calendar-blocks-background",
 			x: 0,
 			y: 0,
 			width: MINIMAL_SVG_WIDTH,
@@ -262,8 +257,7 @@ function createMinimalCalendarSvg(
 	);
 
 	const heading = createSvgElement("text", {
-		class:
-			"calendar-blocks-month-title calendar-blocks-minimal-month-title",
+		class: "calendar-blocks-month-title",
 		x: MINIMAL_GRID_LEFT,
 		y: 50,
 		"text-anchor": "start",
@@ -277,10 +271,7 @@ function createMinimalCalendarSvg(
 
 	const weekdayLabels = getWeekdayLabels(locale, "narrow");
 	weekdayLabels.forEach((label, weekday) => {
-		const classes = [
-			"calendar-blocks-weekday",
-			"calendar-blocks-minimal-weekday",
-		];
+		const classes = ["calendar-blocks-weekday"];
 
 		if (weekday >= 5) {
 			classes.push("calendar-blocks-weekend");
@@ -300,17 +291,14 @@ function createMinimalCalendarSvg(
 	appendMinimalHighlights(svg, visibleDays, cellWidth, selection);
 
 	visibleDays.forEach((day) => {
-		const classes = [
-			"calendar-blocks-day",
-			"calendar-blocks-minimal-day",
-		];
+		const classes = ["calendar-blocks-day"];
 
 		if (day.isWeekend) {
 			classes.push("calendar-blocks-weekend");
 		}
 
 		if (day.highlight === "single") {
-			classes.push("calendar-blocks-minimal-selected-day");
+			classes.push("calendar-blocks-selected-day");
 		} else if (day.highlight !== "none") {
 			classes.push("calendar-blocks-range-day");
 		}
@@ -329,6 +317,7 @@ function createMinimalCalendarSvg(
 		text.textContent = String(day.date.day);
 		if (todayInMonth?.day === day.date.day) {
 			text.setAttribute("aria-current", "date");
+			text.classList.add("calendar-blocks-today");
 		}
 		svg.append(text);
 	});
@@ -336,10 +325,10 @@ function createMinimalCalendarSvg(
 	if (todayDay !== undefined) {
 		const markerWidth = todayDay.highlight === "single" ? 76 : 60;
 		const markerHeight = todayDay.highlight === "single" ? 70 : 52;
-		// Keep the resource embedded in main.js so installation still needs only three files.
-		svg.append(createSvgElement("image", {
+		// A nested viewport preserves the original image scaling and brush geometry.
+		const marker = createSvgElement("svg", {
 			class: "calendar-blocks-today-marker",
-			href: todayMarker,
+			viewBox: "0 0 60 52",
 			x: MINIMAL_GRID_LEFT + (todayDay.weekday + 0.5) * cellWidth - markerWidth / 2,
 			y: MINIMAL_GRID_TOP + MINIMAL_WEEKDAY_HEIGHT +
 				(todayDay.week + 0.5) * MINIMAL_DAY_HEIGHT + MINIMAL_HIGHLIGHT_OFFSET_Y - markerHeight / 2,
@@ -347,7 +336,9 @@ function createMinimalCalendarSvg(
 			height: markerHeight,
 			"aria-hidden": "true",
 			"data-date": formatCalendarDate(todayDay.date),
-		}));
+		});
+		marker.append(createSvgElement("path", todayMarker));
+		svg.append(marker);
 	}
 
 	return svg;
@@ -360,18 +351,18 @@ function appendMinimalHighlights(
 	selection: DateSelection,
 ): void {
 	const entries = getDateEntries(selection);
-	const colors = getEntryColors(entries);
+	const paletteClasses = getEntryPaletteClasses(entries);
 	// Paint each range separately so translucent fills accumulate at intersections.
 	// Assign colors across the whole block, including entries outside this month.
 	entries.forEach((entry, index) => {
 		if (entry.kind !== "range") return;
-		const color = colors[index];
+		const paletteClass = paletteClasses[index];
 		const layerDays = days.map((day) => ({
 			...day,
 			highlight: day.highlights[index],
 		}));
 		appendRangeHighlights(svg, layerDays, cellWidth, {
-			color,
+			paletteClass,
 			gridLeft: MINIMAL_GRID_LEFT,
 			gridTop: MINIMAL_GRID_TOP,
 			weekdayHeight: MINIMAL_WEEKDAY_HEIGHT,
@@ -385,8 +376,7 @@ function appendMinimalHighlights(
 		const day = days.find((day) => day.highlights[index] === "single");
 		if (day === undefined) return;
 		svg.append(createSvgElement("circle", {
-			class: "calendar-blocks-selection-circle",
-			style: `--calendar-blocks-selection-color: ${colors[index]}`,
+			class: `calendar-blocks-selection-circle calendar-blocks-single-highlight ${paletteClasses[index]}`,
 			cx: MINIMAL_GRID_LEFT + (day.weekday + 0.5) * cellWidth,
 			cy: MINIMAL_GRID_TOP + MINIMAL_WEEKDAY_HEIGHT +
 				(day.week + 0.5) * MINIMAL_DAY_HEIGHT + MINIMAL_HIGHLIGHT_OFFSET_Y,
@@ -483,7 +473,7 @@ function appendRangeSegment(
 		roundStart,
 		roundEnd,
 	);
-	const segmentClasses = ["calendar-blocks-range-segment"];
+	const segmentClasses = ["calendar-blocks-range-segment", "calendar-blocks-range-highlight", geometry.paletteClass];
 
 	if (firstDay.isOutsideMonth) {
 		segmentClasses.push("calendar-blocks-range-segment--outside");
@@ -492,7 +482,6 @@ function appendRangeSegment(
 	svg.append(
 		createSvgElement("path", {
 			class: segmentClasses.join(" "),
-			style: `--calendar-blocks-range-color: ${geometry.color}`,
 			d: path,
 			"data-start-date": formatCalendarDate(firstDay.date),
 			"data-end-date": formatCalendarDate(lastDay.date),

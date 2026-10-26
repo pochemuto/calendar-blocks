@@ -12,6 +12,7 @@ export interface VisualCase {
 	stretch?: boolean;
 	showToday?: boolean;
 	markerSeed?: number;
+	css?: string;
 }
 
 export const VISUAL_THEMES = ["light", "dark"] as const;
@@ -52,7 +53,7 @@ export function parseVisualCase(
 	}
 	if (blocks.some((block) => block[1] === "json")) return fail("settings belong in YAML frontmatter");
 	for (const key of Object.keys(options)) {
-		if (!["width", "locale", "stretch", "showToday", "markerSeed"].includes(key)) return fail(`unknown setting: ${key}`);
+		if (!["width", "locale", "stretch", "showToday", "markerSeed", "css"].includes(key)) return fail(`unknown setting: ${key}`);
 	}
 	if (options.width !== undefined && (typeof options.width !== "number" ||
 		!Number.isInteger(options.width) || options.width <= 32 || options.width > 900)) {
@@ -71,6 +72,7 @@ export function parseVisualCase(
 		(typeof options.markerSeed !== "number" || !Number.isSafeInteger(options.markerSeed))) {
 		return fail("markerSeed must be an integer");
 	}
+	if (options.css !== undefined && typeof options.css !== "string") return fail("css must be a string");
 	// Require rendered image embeds, not links shown as code or hidden in comments.
 	const prose = markdown.replace(fencePattern, "").replace(/<!--[\s\S]*?(?:-->|$)/g, "");
 	const imagePattern = /^!\[([^\]\r\n]*)\]\(([^)\r\n]*)\)[ \t]*\r?$/gm;
@@ -97,6 +99,7 @@ export function parseVisualCase(
 		stretch: options.stretch as boolean | undefined,
 		showToday: options.showToday as boolean | undefined,
 		markerSeed: options.markerSeed as number | undefined,
+		css: options.css as string | undefined,
 	};
 }
 
