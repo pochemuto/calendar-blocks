@@ -6,6 +6,13 @@ Calendar Blocks is an Obsidian plugin that renders `date` fenced code
 blocks as responsive SVG calendars in Live Preview and Reading mode. The
 `dates` block name is an exact alias.
 
+Blocks accept leading binary property directives on separate lines or separated
+by whitespace before the first date: `today` / `no-today` and `stretch` /
+`no-stretch`. Last occurrence wins; absent properties inherit global settings.
+Keep the extensible property registry in `src/block-properties.ts` DOM-free and
+preserve local overrides across rerenders and global settings changes. Named
+dates also support month-first forms such as `Feb 14` and `February 14 2026`.
+
 Supported input:
 
 ````markdown

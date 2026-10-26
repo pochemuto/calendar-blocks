@@ -20,6 +20,7 @@ window.renderVisualCase = async (visualCase, theme) => {
 	renderCalendarSelection(container, parsed.value, visualCase.locale ?? "en-US", {
 		stretchCalendar: visualCase.stretch ?? false,
 		showToday: visualCase.showToday ?? true,
+		localOverrides: parsed.overrides,
 		markerSeed: visualCase.markerSeed ?? 7,
 		fileName: `${visualCase.name}.md`,
 		calendarIndex: 0,

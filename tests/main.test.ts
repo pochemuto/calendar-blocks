@@ -51,6 +51,16 @@ async function process(source: string, language = "date") {
 }
 
 describe("date block processor", () => {
+	it.each(["date", "dates"])("passes local overrides for %s without changing saved settings", async (language) => {
+		mocks.loadData.mockResolvedValueOnce({ showToday: false });
+		await process("today no-stretch\nFeb 14 2026", language);
+		expect(mocks.render).toHaveBeenCalledWith(expect.anything(), {
+			kind: "single", date: { year: 2026, month: 2, day: 14 },
+		}, "en", expect.objectContaining({
+			showToday: false, localOverrides: { showToday: true, stretchCalendar: false },
+		}));
+		expect(mocks.saveData).not.toHaveBeenCalled();
+	});
 	afterEach(() => vi.unstubAllGlobals());
 	beforeEach(() => {
 		vi.clearAllMocks();

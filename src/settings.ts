@@ -1,11 +1,9 @@
 import { App, PluginSettingTab, Setting, type SettingDefinitionControl } from "obsidian";
 
 import type CalendarBlocksPlugin from "./main";
+import type { BooleanBlockProperties } from "./block-properties";
 
-export interface CalendarBlocksSettings {
-	stretchCalendar: boolean;
-	showToday: boolean;
-}
+export interface CalendarBlocksSettings extends BooleanBlockProperties {}
 
 export const DEFAULT_SETTINGS: CalendarBlocksSettings = {
 	stretchCalendar: false,

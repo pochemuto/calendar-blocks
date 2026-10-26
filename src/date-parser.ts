@@ -1,4 +1,5 @@
 import { MAX_DATE_ENTRIES } from "./selection-palette";
+import { parseBlockProperty, type BlockOverrides } from "./block-properties";
 
 export interface CalendarDate {
 	year: number;
@@ -37,6 +38,7 @@ export type DateParseResult =
 	| {
 			ok: true;
 			value: DateSelection;
+			overrides?: BlockOverrides;
 	  }
 	| {
 			ok: false;
@@ -66,6 +68,7 @@ interface DatePatterns {
 	atStart: RegExp;
 	complete: RegExp;
 	named: RegExp;
+	monthFirst: RegExp;
 	months: Map<string, number>;
 }
 
@@ -124,13 +127,14 @@ function getDatePatterns(locale?: string): DatePatterns {
 		.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
 	// The fallback keeps unknown names a validation error, never a guessed date.
 	const monthPattern = `(?:${names.join("|")}|[\\p{L}\\p{M}]+)\\.?`;
-	const namedPattern = String.raw`\d{1,2}[ \t]+${monthPattern}(?:[ \t]+\d{4})?`;
+	const namedPattern = String.raw`(?:\d{1,2}[ \t]+${monthPattern}|${monthPattern}[ \t]+\d{1,2})(?:[ \t]+\d{4})?`;
 	const datePattern = String.raw`(?:\d{4}([.\/-])\d{1,2}\1\d{1,2}|\d{1,2}([.\/])\d{1,2}(?:\2\d{4})?|${namedPattern})`;
 	const patterns = {
 		atStart: new RegExp(`^${datePattern}`, "iu"),
 		complete: new RegExp(`^${datePattern}$`, "iu"),
 		named: new RegExp(`^(\\d{1,2})[ \\t]+(${monthPattern})(?:[ \\t]+(\\d{4}))?$`, "iu"),
 		months,
+		monthFirst: new RegExp(`^(${monthPattern})[ \\t]+(\\d{1,2})(?:[ \\t]+(\\d{4}))?$`, "iu"),
 	};
 	localePatterns.set(key, patterns);
 	return patterns;
@@ -142,10 +146,26 @@ export function parseDateInput(
 	locale?: string,
 ): DateParseResult {
 	const lines = source.trim().split(/\r?\n/);
-	if (lines.length > 1) {
+	const overrides: BlockOverrides = {};
+	let inHeader = true;
+	const dateLines = lines.map((line) => {
+		if (!inHeader) return line;
+		let rest = line.trim();
+		while (rest !== "") {
+			const token = /^\S+/.exec(rest)![0];
+			const property = parseBlockProperty(token);
+			if (property === undefined) break;
+			Object.assign(overrides, property);
+			rest = rest.slice(token.length).trimStart();
+		}
+		if (rest !== "") inHeader = false;
+		return rest;
+	});
+	const metadata = Object.keys(overrides).length === 0 ? {} : { overrides };
+	if (dateLines.length > 1 || Object.keys(overrides).length > 0) {
 		const entries: DateEntry[] = [];
 		let previousSpan: DateSpan | undefined;
-		for (const [index, line] of lines.entries()) {
+		for (const [index, line] of dateLines.entries()) {
 			if (line.trim() === "") continue;
 			const result = parseDateEntry(line, defaultYear, locale, previousSpan);
 			if (!result.ok) {
@@ -169,8 +189,9 @@ export function parseDateInput(
 				};
 			}
 		}
-		if (entries.length === 1) return { ok: true, value: entries[0] };
-		return { ok: true, value: { kind: "multiple", entries } };
+		if (entries.length === 0) return failure("invalid-format", "A date block must contain at least one date or range.");
+		if (entries.length === 1) return { ok: true, value: entries[0], ...metadata };
+		return { ok: true, value: { kind: "multiple", entries }, ...metadata };
 	}
 	return parseDateEntry(source, defaultYear, locale);
 }
@@ -270,6 +291,7 @@ function parseCalendarDate(
 	const yearFirst = /^(\d{4})[./-](\d{1,2})[./-](\d{1,2})$/.exec(value);
 	const dayFirst = /^(\d{1,2})[./](\d{1,2})(?:[./](\d{4}))?$/.exec(value);
 	const named = patterns.named.exec(value);
+	const monthFirst = patterns.monthFirst.exec(value);
 	if (yearFirst) {
 		year = Number(yearFirst[1]);
 		month = Number(yearFirst[2]);
@@ -282,6 +304,10 @@ function parseCalendarDate(
 		year = named[3] === undefined ? undefined : Number(named[3]);
 		month = patterns.months.get(normalizeMonth(named[2])) ?? 0;
 		day = Number(named[1]);
+	} else if (monthFirst) {
+		year = monthFirst[3] === undefined ? undefined : Number(monthFirst[3]);
+		month = patterns.months.get(normalizeMonth(monthFirst[1])) ?? 0;
+		day = Number(monthFirst[2]);
 	} else {
 		return failure(
 			"invalid-format",

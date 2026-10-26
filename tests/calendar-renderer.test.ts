@@ -21,6 +21,25 @@ import marker3 from "../src/assets/today-marker-3.svg";
 import marker4 from "../src/assets/today-marker-4.svg";
 
 describe("renderCalendarSelection", () => {
+	it.each([true, false])("keeps local overrides across global settings changes: %s", (enabled) => {
+		const container = document.createElement("div");
+		const parsed = parseDateInput(`${enabled ? "today stretch" : "no-today no-stretch"}\n2026.10.26`);
+		if (!parsed.ok) throw new Error(parsed.message);
+		renderCalendarSelection(container, parsed.value, "en", {
+			showToday: !enabled, stretchCalendar: !enabled, localOverrides: parsed.overrides,
+		});
+		const check = () => {
+			expect(container.querySelector(".calendar-blocks-today-marker") !== null).toBe(enabled);
+			expect(container.firstElementChild?.classList.contains(STRETCHED_CALENDAR_CLASS)).toBe(enabled);
+		};
+		check();
+		for (const globalValue of [false, true, false]) {
+			rerenderCalendarRoot(container.firstElementChild as HTMLElement, {
+				showToday: globalValue, stretchCalendar: globalValue,
+			});
+			check();
+		}
+	});
 	beforeEach(() => {
 		vi.useFakeTimers();
 		vi.setSystemTime(new Date(2026, 9, 26, 12));

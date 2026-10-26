@@ -3,6 +3,45 @@ import { describe, expect, it, vi } from "vitest";
 import { formatDateSelection, parseDateInput } from "../src/date-parser";
 
 describe("parseDateInput", () => {
+	it.each([
+		["today\nFeb 14", { showToday: true }],
+		["no-today\n14 Feb", { showToday: false }],
+		["today stretch\n14 Feb", { showToday: true, stretchCalendar: true }],
+		["today\nno-stretch\n\nFeb 14", { showToday: true, stretchCalendar: false }],
+		["no-today today no-stretch Feb 14", { showToday: true, stretchCalendar: false }],
+		["today\r\n\tstretch\r\nFeb 14", { showToday: true, stretchCalendar: true }],
+	])("parses local properties before dates: %s", (source, overrides) => {
+		expect(parseDateInput(source, 2026)).toEqual({
+			ok: true, overrides,
+			value: { kind: "single", date: { year: 2026, month: 2, day: 14 } },
+		});
+	});
+
+	it.each(["today", "no-today\nstretch", "unknown\n14 Feb 2026", "constructor\n14 Feb 2026", "14 Feb 2026\ntoday"])(
+		"rejects empty blocks, unknown properties and properties after dates: %s", (source) => {
+			expect(parseDateInput(source)).toMatchObject({ ok: false, code: "invalid-format" });
+		},
+	);
+
+	it("preserves labels, source lines and entry limits with a property header", () => {
+		expect(parseDateInput("today\nno-stretch\n31 Feb 2026")).toMatchObject({
+			ok: false, code: "invalid-day", message: expect.stringContaining("Line 3:"),
+		});
+		expect(parseDateInput("today: 14 Feb 2026")).toMatchObject({ ok: true, value: { label: "today" } });
+		expect(parseDateInput(`today\n${Array(40).fill("14 Feb 2026").join("\n")}`).ok).toBe(true);
+		expect(parseDateInput(`today\n${Array(41).fill("14 Feb 2026").join("\n")}`)).toMatchObject({
+			ok: false, code: "too-many-entries", message: expect.stringContaining("Line 42:"),
+		});
+	});
+
+	it.each([
+		["Feb 14 2026 - March 2", "en", true],
+		["февраля 14 2026", "ru", true],
+		["Feb 29 2025", "en", false],
+		["Feb 14 2026oops", "en", false],
+	])("validates month-first dates: %s", (source, locale, ok) => {
+		expect(parseDateInput(source, undefined, locale).ok).toBe(ok);
+	});
 	it("parses a single date", () => {
 		expect(parseDateInput("2025.07.27")).toEqual({
 			ok: true,

@@ -15,6 +15,7 @@ import todayMarker2Url from "./assets/today-marker-2.svg";
 import todayMarker3Url from "./assets/today-marker-3.svg";
 import todayMarker4Url from "./assets/today-marker-4.svg";
 import { getTodayMarkerIndex } from "./today-marker";
+import type { BlockOverrides, BooleanBlockProperties } from "./block-properties";
 
 const TODAY_MARKER_URLS = [todayMarkerUrl, todayMarker2Url, todayMarker3Url, todayMarker4Url];
 
@@ -30,9 +31,8 @@ const MINIMAL_HIGHLIGHT_OFFSET_Y = -2;
 
 export const STRETCHED_CALENDAR_CLASS =
 	"calendar-blocks-root--stretched";
-export interface CalendarRenderOptions {
-	stretchCalendar?: boolean;
-	showToday?: boolean;
+export interface CalendarRenderOptions extends Partial<BooleanBlockProperties> {
+	localOverrides?: BlockOverrides;
 	fileName?: string;
 	/** Zero-based order of the date/dates block in the source note. */
 	calendarIndex?: number;
@@ -47,6 +47,7 @@ interface CalendarRenderState {
 	fileName: string;
 	calendarIndex: number;
 	markerSeed?: number;
+	localOverrides?: BlockOverrides;
 }
 
 interface RangeSegmentGeometry {
@@ -66,6 +67,7 @@ export function renderCalendarSelection(
 	locale: string,
 	options: CalendarRenderOptions = {},
 ): void {
+	options = { ...options, ...options.localOverrides };
 	const safeLocale = getSupportedLocale(locale);
 	const display = createCalendarDisplay(selection);
 	const now = new Date();
@@ -157,6 +159,7 @@ export function renderCalendarSelection(
 		fileName,
 		calendarIndex,
 		markerSeed: options.markerSeed,
+		localOverrides: options.localOverrides,
 	});
 }
 
@@ -204,6 +207,7 @@ export function rerenderCalendarRoot(
 			calendarIndex: state.calendarIndex,
 			markerSeed: state.markerSeed,
 			...options,
+			localOverrides: state.localOverrides,
 		},
 	);
 	return true;

@@ -45,6 +45,7 @@ export default class CalendarBlocksPlugin extends Plugin {
 			renderCalendarSelection(element, result.value, locale, {
 				stretchCalendar: this.settings.stretchCalendar,
 				showToday: this.settings.showToday,
+				...(result.overrides === undefined ? {} : { localOverrides: result.overrides }),
 				fileName: context.sourcePath.split("/").pop() ?? "",
 				calendarIndex: section === null ? 0 : getCalendarBlockIndex(section.text, section.lineStart),
 			});
