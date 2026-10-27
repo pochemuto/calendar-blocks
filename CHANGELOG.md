@@ -6,3 +6,4 @@
 - Vertically align months so their titles appear at the same level.
 - Add a marker for the current day.
 - Allow colons in date labels, including times, by using the last colon as the date separator.
+- Release version 0.1.4.
